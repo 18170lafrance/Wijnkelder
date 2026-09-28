@@ -1,0 +1,1210 @@
+<!DOCTYPE html>
+<html lang="nl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Wijnbibliotheek</title>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<style>
+:root{
+  --claret:#5C1A2E;--claret-dark:#3E1020;--claret-light:#7B2440;
+  --gold:#B8953A;--cream:#FAF7F2;--warm:#F0EBE3;
+  --ink:#1C1410;--muted:#7A6E68;--border:#DDD5CC;--card:#FFFFFF;
+  --success:#2A6B47;--success-bg:#E8F4ED;
+  --warning:#9A5B0A;--warning-bg:#FEF3E2;
+  --danger:#9B2020;--danger-bg:#FDEAEA;
+  --r:10px;--tabbar-h:64px;
+  padding-top:env(safe-area-inset-top,0px);
+  padding-bottom:env(safe-area-inset-bottom,0px);
+  box-sizing:border-box;
+}
+*,*::before,*::after{box-sizing:inherit;margin:0;padding:0;}
+html,body{height:100%;}
+body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;background:var(--cream);color:var(--ink);min-height:100dvh;font-size:15px;line-height:1.5;}
+
+/* LOGIN */
+#loginScreen{position:fixed;inset:0;background:var(--claret-dark);display:flex;flex-direction:column;align-items:center;justify-content:center;padding:24px;z-index:300;overflow-y:auto;}
+#loginScreen.hidden{display:none;}
+.login-logo{font-size:56px;margin-bottom:12px;}
+.login-title{font-family:Georgia,serif;font-size:28px;color:#fff;margin-bottom:6px;}
+.login-sub{font-size:13px;color:rgba(255,255,255,.6);margin-bottom:32px;text-align:center;}
+.login-card{background:var(--card);border-radius:14px;padding:24px;width:100%;max-width:380px;}
+.login-card h2{font-size:16px;font-weight:600;margin-bottom:16px;color:var(--ink);}
+.lf{margin-bottom:12px;}
+.lf label{display:block;font-size:12px;font-weight:600;color:var(--muted);margin-bottom:4px;}
+.lf input{width:100%;padding:10px 12px;border:1.5px solid var(--border);border-radius:8px;font-size:14px;color:var(--ink);background:var(--cream);}
+.lf input:focus{outline:none;border-color:var(--claret);}
+.btn-login{width:100%;padding:13px;border-radius:10px;border:none;background:var(--claret);color:#fff;font-size:15px;font-weight:600;cursor:pointer;margin-top:4px;}
+.btn-login:active{background:var(--claret-light);}
+.btn-google{width:100%;padding:12px;border-radius:10px;border:1.5px solid var(--border);background:var(--card);color:var(--ink);font-size:14px;font-weight:500;cursor:pointer;margin-top:10px;display:flex;align-items:center;justify-content:center;gap:8px;}
+.btn-google:active{background:var(--warm);}
+.login-divider{text-align:center;font-size:12px;color:var(--muted);margin:14px 0;}
+.login-toggle{text-align:center;margin-top:16px;font-size:13px;color:var(--muted);}
+.login-toggle button{background:none;border:none;color:var(--claret);cursor:pointer;font-size:13px;text-decoration:underline;}
+.login-err{color:var(--danger);font-size:13px;margin-top:10px;display:none;text-align:center;}
+.login-info{color:var(--success);font-size:13px;margin-top:10px;display:none;text-align:center;}
+.invite-notice{background:var(--warning-bg);border:1px solid var(--warning);border-radius:8px;padding:10px 12px;font-size:12px;color:var(--warning);margin-top:12px;text-align:center;}
+
+/* HEADER */
+header{background:var(--claret);padding:14px 16px 12px;position:sticky;top:env(safe-area-inset-top,0px);z-index:100;}
+.h-inner{display:flex;align-items:center;justify-content:space-between;}
+.h-title{font-family:Georgia,serif;font-size:20px;color:#fff;letter-spacing:.02em;}
+.h-sub{font-size:12px;color:rgba(255,255,255,.55);margin-top:1px;}
+.h-user{display:flex;align-items:center;gap:8px;}
+.h-avatar{width:30px;height:30px;border-radius:50%;background:rgba(255,255,255,.2);display:flex;align-items:center;justify-content:center;font-size:13px;color:#fff;font-weight:600;flex-shrink:0;overflow:hidden;}
+.h-avatar img{width:100%;height:100%;object-fit:cover;}
+.btn-logout{background:rgba(255,255,255,.15);border:none;color:#fff;border-radius:8px;padding:5px 10px;font-size:12px;cursor:pointer;}
+
+/* TABBAR */
+.tabbar{position:fixed;bottom:0;left:0;right:0;height:calc(var(--tabbar-h) + env(safe-area-inset-bottom,0px));background:var(--card);border-top:1px solid var(--border);display:flex;z-index:100;padding-bottom:env(safe-area-inset-bottom,0px);}
+.tab{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;border:none;background:none;cursor:pointer;color:var(--muted);font-size:10px;font-weight:500;padding:8px 4px;transition:color .15s;}
+.tab .ti{font-size:22px;}
+.tab.active{color:var(--claret);}
+
+/* MAIN */
+main{padding-bottom:calc(var(--tabbar-h) + env(safe-area-inset-bottom,0px) + 16px);}
+.view{display:none;}
+.view.active{display:block;}
+
+/* FILTER + SORT */
+.ctrl-bar{padding:10px 14px 4px;display:flex;flex-direction:column;gap:6px;}
+.filter-bar{display:flex;gap:6px;overflow-x:auto;scrollbar-width:none;}
+.filter-bar::-webkit-scrollbar{display:none;}
+.sort-bar{display:flex;gap:6px;align-items:center;}
+.sort-bar label{font-size:12px;color:var(--muted);white-space:nowrap;}
+.sort-bar select{font-size:12px;padding:4px 8px;border:1px solid var(--border);border-radius:8px;background:var(--card);color:var(--ink);}
+.price-filter{display:flex;gap:6px;align-items:center;}
+.price-filter input{width:70px;font-size:12px;padding:4px 8px;border:1px solid var(--border);border-radius:8px;background:var(--card);color:var(--ink);}
+.price-filter span{font-size:12px;color:var(--muted);}
+.chip{flex-shrink:0;padding:5px 12px;border-radius:20px;font-size:12px;border:1px solid var(--border);background:var(--card);cursor:pointer;white-space:nowrap;color:var(--ink);}
+.chip.active{background:var(--claret);color:#fff;border-color:var(--claret);}
+
+/* WINE CARDS */
+.wine-list{padding:8px 0;}
+.wc{background:var(--card);border:1px solid var(--border);border-radius:var(--r);margin:8px 14px;overflow:hidden;cursor:pointer;transition:box-shadow .15s;}
+.wc:active{box-shadow:0 2px 12px rgba(92,26,46,.15);}
+.wc-top{display:flex;gap:10px;padding:12px 12px 8px;}
+.wc-photo{width:56px;height:56px;border-radius:8px;object-fit:cover;flex-shrink:0;background:var(--warm);}
+.wc-photo-placeholder{width:56px;height:56px;border-radius:8px;background:var(--warm);display:flex;align-items:center;justify-content:center;font-size:26px;flex-shrink:0;}
+.wc-info{flex:1;min-width:0;}
+.wc-name{font-family:Georgia,serif;font-size:15px;color:var(--ink);line-height:1.3;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.wc-prod{font-size:11px;color:var(--muted);margin-top:1px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.wc-badges{display:flex;flex-wrap:wrap;gap:3px;margin-top:6px;}
+.badge{font-size:11px;padding:2px 8px;border-radius:20px;font-weight:500;}
+.b-red{background:#F3E5E8;color:#6B1A2E;}.b-white{background:#FDF8EC;color:#7A5E10;}
+.b-rose{background:#FAE8EC;color:#8B2A40;}.b-spark{background:#EAF2F8;color:#1A5276;}
+.b-des{background:#F4EAD5;color:#6B4A0A;}.b-port{background:#F0E0E8;color:#3D0C1F;}
+.b-year{background:var(--warm);color:var(--muted);}.b-price{background:#F0EBF8;color:#4A2080;}
+.b-format{background:#E8F0F8;color:#2A4A6B;}
+.b-ok{background:var(--success-bg);color:var(--success);}
+.b-low{background:var(--warning-bg);color:var(--warning);}
+.b-zero{background:var(--danger-bg);color:var(--danger);}
+.wc-notes{font-size:12px;color:var(--muted);padding:0 12px 10px;line-height:1.7;}
+.wc-notes strong{color:var(--claret);font-weight:600;}
+.wc-bottom{display:flex;align-items:center;justify-content:space-between;padding:0 12px 10px;}
+.wc-stars-small{display:flex;gap:2px;}
+.star-s{font-size:14px;color:var(--gold);}
+.star-s.off{opacity:.2;}
+.wc-actions{display:flex;gap:5px;}
+.btn-act{padding:6px 10px;border-radius:8px;font-size:12px;font-weight:500;border:1px solid var(--border);cursor:pointer;background:var(--card);color:var(--ink);}
+.btn-act.add{border-color:#2A6B47;color:#2A6B47;}
+.btn-act.drk{border-color:var(--claret);color:var(--claret);}
+.btn-act:disabled{opacity:.35;pointer-events:none;}
+
+/* DETAIL PANEL */
+.panel-overlay{position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:150;opacity:0;pointer-events:none;transition:opacity .25s;}
+.panel-overlay.open{opacity:1;pointer-events:auto;}
+.panel{position:fixed;bottom:0;left:0;right:0;background:var(--card);border-radius:16px 16px 0 0;z-index:151;transform:translateY(100%);transition:transform .3s cubic-bezier(.4,0,.2,1);max-height:90dvh;overflow-y:auto;padding-bottom:env(safe-area-inset-bottom,0px);}
+.panel.open{transform:translateY(0);}
+.panel-handle{width:36px;height:4px;background:var(--border);border-radius:2px;margin:12px auto 0;}
+.panel-head{padding:16px 16px 12px;border-bottom:1px solid var(--border);display:flex;align-items:flex-start;gap:12px;}
+.panel-photo{width:64px;height:64px;border-radius:10px;object-fit:cover;flex-shrink:0;background:var(--warm);}
+.panel-photo-ph{width:64px;height:64px;border-radius:10px;background:var(--warm);display:flex;align-items:center;justify-content:center;font-size:32px;flex-shrink:0;}
+.panel-title{font-family:Georgia,serif;font-size:18px;color:var(--ink);line-height:1.3;}
+.panel-sub{font-size:12px;color:var(--muted);margin-top:2px;}
+.panel-body{padding:14px 16px;}
+.panel-field{margin-bottom:12px;}
+.panel-field label{display:block;font-size:11px;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:.05em;margin-bottom:4px;}
+.panel-field input,.panel-field select,.panel-field textarea{width:100%;padding:9px 12px;border:1.5px solid var(--border);border-radius:8px;font-size:14px;color:var(--ink);background:var(--cream);resize:vertical;}
+.panel-field textarea{min-height:80px;}
+.panel-field input:focus,.panel-field select:focus,.panel-field textarea:focus{outline:none;border-color:var(--claret);}
+.panel-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;}
+.panel-stars{display:flex;gap:6px;padding:4px 0;}
+.pstar{font-size:28px;cursor:pointer;transition:transform .1s;opacity:.25;}
+.pstar.on{opacity:1;}
+.pstar:active{transform:scale(1.2);}
+.panel-actions{display:flex;gap:8px;padding:0 16px 16px;}
+.btn-save{flex:1;padding:12px;border-radius:var(--r);border:none;background:var(--claret);color:#fff;font-size:15px;font-weight:600;cursor:pointer;}
+.btn-save:active{background:var(--claret-light);}
+.btn-share{padding:12px 14px;border-radius:var(--r);border:1px solid var(--gold);background:var(--card);color:var(--gold);cursor:pointer;display:flex;align-items:center;justify-content:center;}
+.btn-share:active{background:var(--warm);}
+.btn-trash{padding:12px 14px;border-radius:var(--r);border:1px solid var(--border);background:var(--card);color:var(--muted);font-size:15px;cursor:pointer;}
+
+/* NOTES */
+.notes-wrap{position:relative;}
+.notes-preview{font-size:13px;color:var(--ink);line-height:1.8;padding:10px 12px;background:var(--warm);border-radius:8px;display:none;}
+.notes-preview p{margin:0 0 6px;}
+.notes-preview p:last-child{margin:0;}
+.notes-preview strong{color:var(--claret);font-weight:600;}
+.notes-edit-btn{font-size:11px;color:var(--muted);background:none;border:none;cursor:pointer;padding:4px 0;text-decoration:underline;display:none;margin-top:4px;}
+
+/* TYPE NOTICE */
+.type-notice{background:#EEF4FF;border:1px solid #6B8FD4;border-radius:8px;padding:10px 12px;margin-top:8px;font-size:13px;color:#2A3A6B;display:none;}
+.type-notice.warn{background:var(--warning-bg);border-color:var(--warning);color:var(--warning);}
+.type-notice strong{display:block;margin-bottom:4px;}
+.type-notice-actions{display:flex;gap:8px;margin-top:8px;}
+.type-notice-actions button{flex:1;padding:7px;border-radius:8px;font-size:12px;cursor:pointer;border:1px solid var(--border);background:var(--card);}
+.type-notice-actions .btn-accept{background:var(--claret);color:#fff;border-color:var(--claret);}
+.type-loading{display:none;font-size:12px;color:var(--muted);margin-top:8px;text-align:center;}
+
+/* SCAN */
+.scan-wrap{padding:14px;}
+.scan-zone{border:2px dashed var(--border);border-radius:var(--r);background:var(--card);text-align:center;cursor:pointer;overflow:hidden;min-height:160px;display:flex;align-items:center;justify-content:center;flex-direction:column;transition:border-color .2s;position:relative;}
+.scan-zone:hover{border-color:var(--gold);}
+.scan-corner{position:absolute;width:24px;height:24px;border-color:var(--gold);border-style:solid;opacity:.7;}
+.scan-corner.tl{top:10px;left:10px;border-width:3px 0 0 3px;}
+.scan-corner.tr{top:10px;right:10px;border-width:3px 3px 0 0;}
+.scan-corner.bl{bottom:10px;left:10px;border-width:0 0 3px 3px;}
+.scan-corner.br{bottom:10px;right:10px;border-width:0 3px 3px 0;}
+#scanPreview{width:100%;max-height:240px;object-fit:cover;display:none;}
+#fileInput{display:none;}
+.scan-loading{text-align:center;padding:28px 0;display:none;}
+.spinner{width:36px;height:36px;margin:0 auto 12px;border:3px solid var(--border);border-top-color:var(--claret);border-radius:50%;animation:spin .75s linear infinite;}
+@keyframes spin{to{transform:rotate(360deg);}}
+.scan-loading p{font-size:13px;color:var(--muted);}
+.scan-form{display:none;margin-top:14px;}
+.sff{margin-bottom:11px;}
+.sff label{display:block;font-size:11px;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:.05em;margin-bottom:4px;}
+.sff input,.sff select,.sff textarea{width:100%;padding:9px 12px;border:1.5px solid var(--border);border-radius:8px;font-size:14px;color:var(--ink);background:var(--card);resize:vertical;}
+.sff textarea{min-height:72px;}
+.sff input:focus,.sff select:focus,.sff textarea:focus{outline:none;border-color:var(--claret);}
+.sf-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;}
+.btn-primary{width:100%;padding:13px;border-radius:var(--r);border:none;background:var(--claret);color:#fff;font-size:15px;font-weight:600;cursor:pointer;margin-top:6px;}
+.btn-primary:active{background:var(--claret-light);}
+.btn-secondary{width:100%;padding:11px;border-radius:var(--r);border:1px solid var(--border);background:var(--card);color:var(--ink);font-size:14px;cursor:pointer;margin-top:8px;}
+
+/* STOCK */
+.stock-wrap{padding:14px;}
+.stats-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:20px;}
+.stat-card{background:var(--card);border:1px solid var(--border);border-radius:var(--r);padding:14px;cursor:pointer;}
+.stat-card:active{box-shadow:0 2px 12px rgba(92,26,46,.15);}
+.stat-num{font-family:Georgia,serif;font-size:30px;color:var(--claret);}
+.stat-lbl{font-size:12px;color:var(--muted);margin-top:3px;}
+.sec-title{font-size:13px;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:.06em;margin-bottom:10px;}
+.brk-card{background:var(--card);border:1px solid var(--border);border-radius:var(--r);overflow:hidden;margin-bottom:20px;}
+.brk-row{display:flex;align-items:center;padding:12px 14px;border-bottom:1px solid var(--border);cursor:pointer;}
+.brk-row:last-child{border-bottom:none;}
+.brk-row:active{background:var(--warm);}
+.brk-dot{width:10px;height:10px;border-radius:50%;margin-right:10px;flex-shrink:0;}
+.brk-name{flex:1;font-size:14px;}
+.brk-val{font-size:14px;font-weight:600;color:var(--claret);}
+.star-rating-section{background:var(--card);border:1px solid var(--border);border-radius:var(--r);overflow:hidden;margin-bottom:20px;}
+.star-rating-row{display:flex;align-items:center;padding:10px 14px;border-bottom:1px solid var(--border);cursor:pointer;}
+.star-rating-row:last-child{border-bottom:none;}
+.star-rating-row:active{background:var(--warm);}
+.srr-stars{display:flex;gap:2px;width:80px;}
+.srr-star{font-size:14px;color:var(--gold);}
+.srr-star.off{opacity:.2;}
+.srr-count{flex:1;font-size:14px;color:var(--muted);margin-left:8px;}
+.srr-val{font-size:14px;font-weight:600;color:var(--claret);}
+.low-list{display:flex;flex-direction:column;gap:8px;}
+.low-card{background:var(--card);border:1px solid var(--border);border-radius:var(--r);padding:12px 14px;display:flex;align-items:center;gap:12px;}
+.low-thumb{font-size:22px;}
+.low-info{flex:1;min-width:0;}
+.low-name{font-size:14px;font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.low-stk{font-size:12px;color:var(--warning);font-weight:600;margin-top:2px;}
+.btn-refill{padding:7px 12px;border-radius:8px;font-size:13px;border:1px solid #2A6B47;color:#2A6B47;background:var(--card);cursor:pointer;white-space:nowrap;}
+
+/* SUBVIEW */
+.subview{display:none;position:fixed;inset:0;background:var(--cream);z-index:120;overflow-y:auto;padding-bottom:20px;}
+.subview.open{display:block;}
+.subview-head{background:var(--claret);padding:14px 16px;display:flex;align-items:center;gap:12px;position:sticky;top:0;z-index:1;}
+.subview-back{background:none;border:none;color:#fff;font-size:20px;cursor:pointer;padding:0 4px;}
+.subview-title{font-family:Georgia,serif;font-size:18px;color:#fff;}
+
+/* ADMIN */
+.admin-wrap{padding:14px;}
+.admin-card{background:var(--card);border:1px solid var(--border);border-radius:var(--r);overflow:hidden;margin-bottom:16px;}
+.admin-card-head{padding:12px 14px;border-bottom:1px solid var(--border);font-weight:600;font-size:14px;background:var(--warm);}
+.invite-row{display:flex;gap:8px;padding:14px;}
+.invite-row input{flex:1;padding:9px 12px;border:1.5px solid var(--border);border-radius:8px;font-size:14px;color:var(--ink);background:var(--cream);}
+.invite-row input:focus{outline:none;border-color:var(--claret);}
+.btn-invite{padding:9px 16px;border-radius:8px;border:none;background:var(--claret);color:#fff;font-size:14px;cursor:pointer;white-space:nowrap;}
+.invite-list{padding:0 14px 14px;}
+.invite-item{display:flex;align-items:center;padding:8px 0;border-bottom:1px solid var(--border);font-size:13px;}
+.invite-item:last-child{border-bottom:none;}
+.invite-email{flex:1;color:var(--ink);}
+.invite-date{font-size:11px;color:var(--muted);margin-right:10px;}
+.btn-remove-invite{background:none;border:none;color:var(--danger);cursor:pointer;font-size:16px;padding:0 4px;}
+
+/* EMPTY / LOADER */
+.empty{text-align:center;padding:52px 24px;}
+.empty-icon{font-size:48px;margin-bottom:14px;}
+.empty-title{font-size:16px;font-weight:500;}
+.empty-sub{font-size:13px;color:var(--muted);margin-top:6px;}
+.loader-full{text-align:center;padding:60px 24px;}
+.loader-full .spinner{margin:0 auto 16px;}
+.loader-full p{font-size:14px;color:var(--muted);}
+
+/* TOAST + VERSION */
+#version{position:fixed;bottom:calc(var(--tabbar-h) + env(safe-area-inset-bottom,0px) + 4px);right:10px;font-size:10px;color:var(--muted);opacity:.5;pointer-events:none;z-index:50;}
+#toast{position:fixed;bottom:calc(var(--tabbar-h) + env(safe-area-inset-bottom,0px) + 12px);left:50%;transform:translateX(-50%) translateY(12px);background:var(--ink);color:#fff;padding:10px 18px;border-radius:16px;font-size:13px;opacity:0;transition:opacity .2s,transform .2s;pointer-events:none;z-index:400;white-space:normal;max-width:calc(100vw - 32px);text-align:center;line-height:1.5;}
+#toast.show{opacity:1;transform:translateX(-50%) translateY(0);}
+
+@media(prefers-color-scheme:dark){
+  :root{--cream:#1A1410;--warm:#2A201A;--ink:#F0EBE3;--muted:#9A8E88;--border:#3A2E28;--card:#231C18;}
+}
+</style>
+</head>
+<body>
+
+<!-- LOGIN SCREEN -->
+<div id="loginScreen">
+  <div class="login-logo">🍷</div>
+  <div class="login-title">Wijnbibliotheek</div>
+  <div class="login-sub">Jouw persoonlijke wijnkelder</div>
+  <div class="login-card">
+    <h2 id="loginHeading">Inloggen</h2>
+    <!-- E-mail login -->
+    <div id="emailForm">
+      <div class="lf"><label>E-mailadres</label><input type="email" id="loginEmail" placeholder="naam@voorbeeld.nl" autocomplete="email"></div>
+      <div class="lf" id="passwordWrap"><label>Wachtwoord</label><input type="password" id="loginPassword" placeholder="Wachtwoord" autocomplete="current-password"></div>
+      <div class="lf" id="password2Wrap" style="display:none"><label>Wachtwoord bevestigen</label><input type="password" id="loginPassword2" placeholder="Herhaal wachtwoord"></div>
+      <button class="btn-login" id="loginBtn" onclick="handleEmailAuth()">Inloggen</button>
+      <div class="login-divider">of</div>
+      <button class="btn-google" onclick="handleGoogleAuth()">
+        <svg width="18" height="18" viewBox="0 0 24 24"><path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/><path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/><path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"/><path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"/></svg>
+        Inloggen met Google
+      </button>
+    </div>
+    <div class="login-err" id="loginErr"></div>
+    <div class="login-info" id="loginInfo"></div>
+    <div class="invite-notice" id="inviteNotice" style="display:none">
+      ⚠️ Registreren is alleen mogelijk na een uitnodiging. Neem contact op met de beheerder.
+    </div>
+    <div class="login-toggle">
+      <span id="toggleText">Nog geen account?</span>
+      <button onclick="toggleAuthMode()">Registreren</button>
+    </div>
+  </div>
+</div>
+
+<!-- HEADER -->
+<header>
+  <div class="h-inner">
+    <div>
+      <div class="h-title">🍷 Wijnbibliotheek</div>
+      <div class="h-sub" id="hSub">Laden…</div>
+    </div>
+    <div class="h-user">
+      <div class="h-avatar" id="hAvatar"></div>
+      <button class="btn-logout" onclick="handleLogout()">Uitloggen</button>
+    </div>
+  </div>
+</header>
+
+<main>
+  <!-- LIBRARY -->
+  <div class="view active" id="view-library">
+    <div class="ctrl-bar">
+      <div class="filter-bar">
+        <button class="chip active" onclick="setFilter('all',this)">Alle</button>
+        <button class="chip" onclick="setFilter('red',this)">🍷 Rood</button>
+        <button class="chip" onclick="setFilter('white',this)">🥂 Wit</button>
+        <button class="chip" onclick="setFilter('rose',this)">🌸 Rosé</button>
+        <button class="chip" onclick="setFilter('sparkling',this)">✨ Mousseux</button>
+        <button class="chip" onclick="setFilter('port',this)">🍾 Port</button>
+        <button class="chip" onclick="setFilter('instock',this)">Op voorraad</button>
+      </div>
+      <div class="sort-bar">
+        <label>Sortering:</label>
+        <select id="sortSel" onchange="renderLib()">
+          <option value="date">Nieuwste eerst</option>
+          <option value="name">Naam A-Z</option>
+          <option value="price_asc">Prijs laag-hoog</option>
+          <option value="price_desc">Prijs hoog-laag</option>
+          <option value="rating">Beoordeling</option>
+        </select>
+      </div>
+      <div class="price-filter">
+        <span>Prijs:</span>
+        <input type="number" id="priceMin" placeholder="Min €" min="0" oninput="renderLib()">
+        <span>–</span>
+        <input type="number" id="priceMax" placeholder="Max €" min="0" oninput="renderLib()">
+      </div>
+    </div>
+    <div class="wine-list" id="wineList"><div class="loader-full"><div class="spinner"></div><p>Laden…</p></div></div>
+  </div>
+
+  <!-- SCAN -->
+  <div class="view" id="view-scan">
+    <div class="scan-wrap">
+      <div class="scan-zone" id="scanZone" onclick="document.getElementById('fileInput').click()">
+        <div class="scan-corner tl"></div><div class="scan-corner tr"></div>
+        <div class="scan-corner bl"></div><div class="scan-corner br"></div>
+        <img id="scanPreview" alt="Etiket">
+        <div id="scanPh" style="padding:32px 20px;text-align:center">
+          <div style="font-size:48px;margin-bottom:12px">📷</div>
+          <div style="font-size:16px;font-weight:600">Richt op het wijnetiket</div>
+          <div style="font-size:13px;color:var(--muted);margin-top:6px">Tik hier om een foto te maken<br>of een afbeelding te uploaden</div>
+        </div>
+      </div>
+      <input type="file" id="fileInput" accept="image/*" capture="environment" onchange="handleImage(event)">
+      <div class="scan-loading" id="scanLoading"><div class="spinner"></div><p id="scanModelTxt">Etiket analyseren…</p></div>
+      <div class="scan-form" id="scanForm">
+        <div class="sff"><label>Wijnnaam</label><input type="text" id="fName" placeholder="Naam van de wijn"></div>
+        <div class="sff"><label>Producent / Domein</label><input type="text" id="fProducer" placeholder="Château, domein of merk"></div>
+        <div class="sf-grid">
+          <div class="sff"><label>Jaar</label><input type="number" id="fYear" placeholder="2020" min="1900" max="2030"></div>
+          <div class="sff"><label>Type</label>
+            <select id="fType" onchange="onTypeChange('f')">
+              <option value="red">🍷 Rood</option><option value="white">🥂 Wit</option>
+              <option value="rose">🌸 Rosé</option><option value="sparkling">✨ Mousseux</option>
+              <option value="dessert">🍯 Dessert</option><option value="port">🍾 Port</option>
+            </select>
+          </div>
+        </div>
+        <div class="sf-grid">
+          <div class="sff"><label>Druivenras</label><input type="text" id="fGrape" placeholder="Cabernet, Merlot…"></div>
+          <div class="sff"><label>Regio</label><input type="text" id="fRegion" placeholder="Bordeaux, Toscane…"></div>
+        </div>
+        <div class="type-notice" id="fTypeNotice"></div>
+        <div class="type-loading" id="fTypeLoading"><div class="spinner" style="width:20px;height:20px;margin:0 auto 4px"></div>Nieuwe wijninfo ophalen…</div>
+        <div class="sf-grid">
+          <div class="sff"><label>Prijs (€)</label><input type="number" id="fPrice" placeholder="14.99" step="0.01" min="0"></div>
+          <div class="sff"><label>Aantal flessen</label><input type="number" id="fStock" value="1" min="1"></div>
+        </div>
+        <div class="sff"><label>Flesformaat</label>
+          <select id="fFormat">
+            <option value="piccolo">Piccolo — 18,7 cl</option>
+            <option value="half">Half fles — 37,5 cl</option>
+            <option value="standard" selected>Standaard — 75 cl</option>
+            <option value="magnum">Magnum — 1,5 L</option>
+            <option value="double_magnum">Double Magnum / Jeroboam — 3 L</option>
+            <option value="rehoboam">Rehoboam — 4,5 L</option>
+          </select>
+        </div>
+        <div class="sff">
+          <label>Notities &amp; smaakervaring</label>
+          <div class="notes-wrap">
+            <textarea id="fNotes" placeholder="Aroma: …&#10;Smaak: …&#10;Afdronk: …&#10;Serveertemperatuur: …&#10;Spijscombinaties: …&#10;Bewaren: …" oninput="updateNotesPreview('fNotes','fNotesPreview','fNotesEdit')"></textarea>
+            <div class="notes-preview" id="fNotesPreview"></div>
+            <button type="button" class="notes-edit-btn" id="fNotesEdit" onclick="editNotes('fNotes','fNotesPreview','fNotesEdit')">✏️ Bewerken</button>
+          </div>
+        </div>
+        <button class="btn-primary" onclick="saveWine()">Toevoegen aan bibliotheek</button>
+        <button class="btn-secondary" onclick="resetScan()">↩ Opnieuw scannen</button>
+      </div>
+      <button class="btn-secondary" id="manualBtn" style="margin-top:14px" onclick="showManual()">+ Handmatig invoeren</button>
+    </div>
+  </div>
+
+  <!-- STOCK -->
+  <div class="view" id="view-stock">
+    <div class="stock-wrap">
+      <div class="stats-grid" id="statsGrid"></div>
+      <div class="sec-title">Per type</div>
+      <div class="brk-card" id="breakdown"></div>
+      <div class="sec-title" style="margin-top:20px">Per beoordeling</div>
+      <div class="star-rating-section" id="starRatings"></div>
+      <div class="sec-title" style="margin-top:20px">Lage voorraad</div>
+      <div class="low-list" id="lowList"></div>
+    </div>
+  </div>
+
+  <!-- ADMIN -->
+  <div class="view" id="view-admin">
+    <div class="admin-wrap">
+      <div class="admin-card">
+        <div class="admin-card-head">📧 Uitnodigingen beheren</div>
+        <div class="invite-row">
+          <input type="email" id="inviteEmail" placeholder="vriend@voorbeeld.nl">
+          <button class="btn-invite" onclick="addInvite()">Uitnodigen</button>
+        </div>
+        <div class="invite-list" id="inviteList"><div style="font-size:13px;color:var(--muted);text-align:center;padding:12px">Laden…</div></div>
+      </div>
+      <div class="admin-card">
+        <div class="admin-card-head">ℹ️ Jouw account</div>
+        <div style="padding:14px;font-size:13px;color:var(--muted);" id="accountInfo"></div>
+      </div>
+    </div>
+  </div>
+</main>
+
+<!-- DETAIL PANEL -->
+<div class="panel-overlay" id="panelOverlay" onclick="closePanel()"></div>
+<div class="panel" id="detailPanel">
+  <div class="panel-handle"></div>
+  <div class="panel-head">
+    <div id="panelPhotoContainer"></div>
+    <div><div class="panel-title" id="panelTitle"></div><div class="panel-sub" id="panelSub"></div></div>
+  </div>
+  <div class="panel-body">
+    <div class="panel-field"><label>Wijnnaam</label><input type="text" id="pName"></div>
+    <div class="panel-field"><label>Producent / Domein</label><input type="text" id="pProducer"></div>
+    <div class="panel-grid">
+      <div class="panel-field"><label>Jaar</label><input type="number" id="pYear" min="1900" max="2030"></div>
+      <div class="panel-field"><label>Type</label>
+        <select id="pType" onchange="onTypeChange('p')">
+          <option value="red">🍷 Rood</option><option value="white">🥂 Wit</option>
+          <option value="rose">🌸 Rosé</option><option value="sparkling">✨ Mousseux</option>
+          <option value="dessert">🍯 Dessert</option><option value="port">🍾 Port</option>
+        </select>
+      </div>
+    </div>
+    <div class="panel-grid">
+      <div class="panel-field"><label>Druivenras</label><input type="text" id="pGrape"></div>
+      <div class="panel-field"><label>Regio</label><input type="text" id="pRegion"></div>
+    </div>
+    <div class="type-notice" id="pTypeNotice"></div>
+    <div class="type-loading" id="pTypeLoading"><div class="spinner" style="width:20px;height:20px;margin:0 auto 4px"></div>Nieuwe wijninfo ophalen…</div>
+    <div class="panel-grid">
+      <div class="panel-field"><label>Prijs (€)</label><input type="number" id="pPrice" step="0.01" min="0"></div>
+      <div class="panel-field"><label>Aantal flessen</label><input type="number" id="pStock" min="0"></div>
+    </div>
+    <div class="panel-field"><label>Flesformaat</label>
+      <select id="pFormat">
+        <option value="piccolo">Piccolo — 18,7 cl</option>
+        <option value="half">Half fles — 37,5 cl</option>
+        <option value="standard">Standaard — 75 cl</option>
+        <option value="magnum">Magnum — 1,5 L</option>
+        <option value="double_magnum">Double Magnum / Jeroboam — 3 L</option>
+        <option value="rehoboam">Rehoboam — 4,5 L</option>
+      </select>
+    </div>
+    <div class="panel-field">
+      <label>Notities &amp; smaakervaring</label>
+      <div class="notes-wrap">
+        <textarea id="pNotes" placeholder="Aroma: …&#10;Smaak: …&#10;Afdronk: …&#10;Serveertemperatuur: …&#10;Spijscombinaties: …&#10;Bewaren: …" oninput="updateNotesPreview('pNotes','pNotesPreview','pNotesEdit')"></textarea>
+        <div class="notes-preview" id="pNotesPreview"></div>
+        <button type="button" class="notes-edit-btn" id="pNotesEdit" onclick="editNotes('pNotes','pNotesPreview','pNotesEdit')">✏️ Bewerken</button>
+      </div>
+    </div>
+    <div class="panel-field">
+      <label>Beoordeling</label>
+      <div class="panel-stars">
+        <span class="pstar" onclick="setPanelStar(1)">★</span>
+        <span class="pstar" onclick="setPanelStar(2)">★</span>
+        <span class="pstar" onclick="setPanelStar(3)">★</span>
+        <span class="pstar" onclick="setPanelStar(4)">★</span>
+        <span class="pstar" onclick="setPanelStar(5)">★</span>
+      </div>
+    </div>
+  </div>
+  <div class="panel-actions">
+    <button class="btn-save" onclick="savePanel()">Opslaan</button>
+    <button class="btn-share" onclick="shareWine()" title="Delen">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+        <circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/>
+        <line x1="8.59" y1="13.51" x2="15.42" y2="17.49"/><line x1="15.41" y1="6.51" x2="8.59" y2="10.49"/>
+      </svg>
+    </button>
+    <button class="btn-trash" onclick="deletePanelWine()">🗑</button>
+  </div>
+</div>
+
+<!-- SUBVIEW -->
+<div class="subview" id="subview">
+  <div class="subview-head">
+    <button class="subview-back" onclick="closeSubview()">←</button>
+    <div class="subview-title" id="subviewTitle"></div>
+  </div>
+  <div class="wine-list" id="subviewList"></div>
+</div>
+
+<nav class="tabbar" id="tabbar">
+  <button class="tab active" id="tab-library" onclick="switchTab('library')"><span class="ti">📚</span>Bibliotheek</button>
+  <button class="tab" id="tab-scan" onclick="switchTab('scan')"><span class="ti">📷</span>Scan</button>
+  <button class="tab" id="tab-stock" onclick="switchTab('stock')"><span class="ti">📦</span>Voorraad</button>
+  <button class="tab" id="tab-admin" onclick="switchTab('admin')" style="display:none"><span class="ti">⚙️</span>Beheer</button>
+</nav>
+
+<div id="toast"></div>
+<div id="version">v1.64-multi</div>
+
+<script>
+/* ── CONFIG ── */
+const SB_URL='https://kqlpttcqepzyhzdkndxa.supabase.co';
+const SB_ANON='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImtxbHB0dGNxZXB6eWh6ZGtuZHhhIiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTA1OTQ4NzksImV4cCI6MjEwNjE3MDg3OX0.n1qr4AYZwXPr806SxwV6EGQNd5K-4D0dXVdMNI0ElPE';
+const WORKER_URL='https://wijnbibliotheek.18170lafrance.workers.dev';
+const ADMIN_EMAIL='18170lafrance@gmail.com';
+
+/* ── SUPABASE CLIENT ── */
+const {createClient}=supabase;
+const sb=createClient(SB_URL,SB_ANON,{auth:{autoRefreshToken:true,persistSession:true,detectSessionInUrl:true}});
+
+/* ── STATE ── */
+let wines=[];
+let filter='all';
+let currentUser=null;
+let panelWineId=null;
+let panelStar=0;
+let authMode='login';
+
+const TI={
+  red:{label:'Rood',emoji:'🍷',bc:'b-red',color:'#8B1A2A'},
+  white:{label:'Wit',emoji:'🥂',bc:'b-white',color:'#C9A84C'},
+  rose:{label:'Rosé',emoji:'🌸',bc:'b-rose',color:'#C4607A'},
+  sparkling:{label:'Mousseux',emoji:'✨',bc:'b-spark',color:'#3A80B0'},
+  dessert:{label:'Dessert',emoji:'🍯',bc:'b-des',color:'#8B6010'},
+  port:{label:'Port',emoji:'🍾',bc:'b-port',color:'#3D0C1F'}
+};
+const FORMATS={
+  piccolo:{label:'Piccolo',short:'Piccolo',cl:18.7},
+  half:{label:'Half fles',short:'Half',cl:37.5},
+  standard:{label:'Standaard',short:'75cl',cl:75},
+  magnum:{label:'Magnum',short:'Magnum',cl:150},
+  double_magnum:{label:'Double Magnum',short:'D.Magnum',cl:300},
+  rehoboam:{label:'Rehoboam',short:'Rehoboam',cl:450}
+};
+const VALID_FORMATS=Object.keys(FORMATS);
+const VALID_TYPES=['red','white','rose','sparkling','dessert','port'];
+
+/* ── AUTH ── */
+function showLoginScreen(){document.getElementById('loginScreen').classList.remove('hidden');}
+function hideLoginScreen(){document.getElementById('loginScreen').classList.add('hidden');}
+
+function toggleAuthMode(){
+  authMode=authMode==='login'?'register':'login';
+  document.getElementById('loginHeading').textContent=authMode==='login'?'Inloggen':'Registreren';
+  document.getElementById('loginBtn').textContent=authMode==='login'?'Inloggen':'Registreren';
+  document.getElementById('toggleText').textContent=authMode==='login'?'Nog geen account?':'Al een account?';
+  document.querySelector('.login-toggle button').textContent=authMode==='login'?'Registreren':'Inloggen';
+  document.getElementById('password2Wrap').style.display=authMode==='register'?'block':'none';
+  document.getElementById('loginErr').style.display='none';
+  document.getElementById('loginInfo').style.display='none';
+  document.getElementById('inviteNotice').style.display='none';
+}
+
+async function handleEmailAuth(){
+  const email=document.getElementById('loginEmail').value.trim();
+  const password=document.getElementById('loginPassword').value;
+  const errEl=document.getElementById('loginErr');
+  const infoEl=document.getElementById('loginInfo');
+  errEl.style.display='none';
+  infoEl.style.display='none';
+  if(!email||!password){errEl.textContent='Vul e-mail en wachtwoord in';errEl.style.display='block';return;}
+
+  if(authMode==='register'){
+    const pw2=document.getElementById('loginPassword2').value;
+    if(password!==pw2){errEl.textContent='Wachtwoorden komen niet overeen';errEl.style.display='block';return;}
+    // Check uitnodiging
+    const {data:inv}=await sb.from('uitnodigingen').select('email').eq('email',email).single();
+    if(!inv){
+      document.getElementById('inviteNotice').style.display='block';
+      return;
+    }
+    const {error}=await sb.auth.signUp({email,password});
+    if(error){errEl.textContent=error.message;errEl.style.display='block';return;}
+    infoEl.textContent='Controleer je e-mail om je account te bevestigen.';
+    infoEl.style.display='block';
+  } else {
+    const {error}=await sb.auth.signInWithPassword({email,password});
+    if(error){errEl.textContent='Onjuist e-mail of wachtwoord';errEl.style.display='block';return;}
+  }
+}
+
+async function handleGoogleAuth(){
+  const{error}=await sb.auth.signInWithOAuth({
+    provider:'google',
+    options:{redirectTo:window.location.href}
+  });
+  if(error){
+    document.getElementById('loginErr').textContent=error.message;
+    document.getElementById('loginErr').style.display='block';
+  }
+}
+
+async function handleLogout(){
+  await sb.auth.signOut();
+  currentUser=null;
+  wines=[];
+  showLoginScreen();
+  document.getElementById('hSub').textContent='Verbinding instellen…';
+}
+
+function updateUserUI(user){
+  currentUser=user;
+  const isAdmin=user.email===ADMIN_EMAIL;
+  // Avatar
+  const av=document.getElementById('hAvatar');
+  const pic=user.user_metadata?.avatar_url;
+  if(pic) av.innerHTML=`<img src="${pic}" alt="avatar">`;
+  else av.textContent=(user.email||'?')[0].toUpperCase();
+  // Admin tab
+  document.getElementById('tab-admin').style.display=isAdmin?'flex':'none';
+  // Account info
+  document.getElementById('accountInfo').innerHTML=`
+    <strong>E-mail:</strong> ${user.email}<br>
+    <strong>Ingelogd via:</strong> ${user.app_metadata?.provider||'e-mail'}<br>
+    <strong>Lid sinds:</strong> ${new Date(user.created_at).toLocaleDateString('nl-NL')}
+  `;
+}
+
+/* ── SUPABASE DATA ── */
+function hdrs(token){return{'Content-Type':'application/json','apikey':SB_ANON,'Authorization':'Bearer '+token};}
+
+async function getToken(){
+  const{data}=await sb.auth.getSession();
+  return data?.session?.access_token||SB_ANON;
+}
+
+async function sbGet(){
+  const token=await getToken();
+  const r=await fetch(SB_URL+'/rest/v1/wijnen?select=*&order=toegevoegd_op.desc',{headers:{...hdrs(token),'Prefer':'return=representation'}});
+  if(!r.ok)throw new Error(await r.text());
+  return r.json();
+}
+
+async function sbPost(data){
+  const token=await getToken();
+  // user_id wordt automatisch via RLS policy toegevoegd
+  const payload={...data,user_id:currentUser.id};
+  const r=await fetch(SB_URL+'/rest/v1/wijnen',{method:'POST',headers:{...hdrs(token),'Prefer':'return=representation'},body:JSON.stringify(payload)});
+  if(!r.ok)throw new Error(await r.text());
+  return r.json();
+}
+
+async function sbPatch(id,data){
+  const token=await getToken();
+  const r=await fetch(SB_URL+'/rest/v1/wijnen?id=eq.'+id,{method:'PATCH',headers:{...hdrs(token),'Prefer':'return=representation'},body:JSON.stringify(data)});
+  if(!r.ok)throw new Error(await r.text());
+  return r.json();
+}
+
+async function sbDelete(id){
+  const token=await getToken();
+  const r=await fetch(SB_URL+'/rest/v1/wijnen?id=eq.'+id,{method:'DELETE',headers:hdrs(token)});
+  if(!r.ok)throw new Error(await r.text());
+}
+
+/* ── UITNODIGINGEN ── */
+async function loadInvites(){
+  const token=await getToken();
+  const r=await fetch(SB_URL+'/rest/v1/uitnodigingen?select=*&order=aangemaakt.desc',{headers:hdrs(token)});
+  const list=await r.json();
+  const el=document.getElementById('inviteList');
+  if(!list.length){el.innerHTML='<div style="font-size:13px;color:var(--muted);text-align:center;padding:8px">Geen uitnodigingen</div>';return;}
+  el.innerHTML=list.map(inv=>`<div class="invite-item">
+    <span class="invite-email">${inv.email}</span>
+    <span class="invite-date">${new Date(inv.aangemaakt).toLocaleDateString('nl-NL')}</span>
+    <button class="btn-remove-invite" onclick="removeInvite('${inv.id}','${inv.email}')">✕</button>
+  </div>`).join('');
+}
+
+async function addInvite(){
+  const email=document.getElementById('inviteEmail').value.trim();
+  if(!email){toast('Voer een e-mailadres in');return;}
+  const token=await getToken();
+  const r=await fetch(SB_URL+'/rest/v1/uitnodigingen',{method:'POST',headers:{...hdrs(token),'Prefer':'return=representation'},body:JSON.stringify({email})});
+  if(!r.ok){toast('Uitnodiging mislukt (mogelijk al uitgenodigd)');return;}
+  document.getElementById('inviteEmail').value='';
+  toast(email+' uitgenodigd ✓');
+  loadInvites();
+}
+
+async function removeInvite(id,email){
+  if(!confirm(`Uitnodiging voor ${email} intrekken?`))return;
+  const token=await getToken();
+  await fetch(SB_URL+'/rest/v1/uitnodigingen?id=eq.'+id,{method:'DELETE',headers:hdrs(token)});
+  toast('Uitnodiging ingetrokken');
+  loadInvites();
+}
+
+/* ── INIT ── */
+async function init(){
+  const{data:{session}}=await sb.auth.getSession();
+  if(!session){showLoginScreen();return;}
+  hideLoginScreen();
+  updateUserUI(session.user);
+  document.getElementById('hSub').textContent='Laden…';
+  try{
+    wines=await sbGet();
+    updateSubtitle();
+    renderLib();
+  }catch(e){
+    document.getElementById('hSub').textContent='Fout bij laden';
+    toast('Kan wijnen niet laden');
+  }
+}
+
+sb.auth.onAuthStateChange(async(event,session)=>{
+  if(event==='SIGNED_IN'&&session){
+    hideLoginScreen();
+    updateUserUI(session.user);
+    wines=await sbGet();
+    updateSubtitle();
+    renderLib();
+  } else if(event==='SIGNED_OUT'){
+    showLoginScreen();
+  }
+});
+
+function updateSubtitle(){
+  document.getElementById('hSub').textContent=wines.length+' wijn'+(wines.length!==1?'en':'')+' in je kelder';
+}
+
+/* ── LIBRARY ── */
+function setFilter(f,el){
+  filter=f;
+  document.querySelectorAll('.chip').forEach(c=>c.classList.remove('active'));
+  el.classList.add('active');
+  renderLib();
+}
+
+function renderLib(){
+  let list=[...wines];
+  if(filter==='instock') list=list.filter(w=>(w.voorraad||0)>0);
+  else if(filter!=='all') list=list.filter(w=>w.type===filter);
+  const pMin=parseFloat(document.getElementById('priceMin').value);
+  const pMax=parseFloat(document.getElementById('priceMax').value);
+  if(!isNaN(pMin)) list=list.filter(w=>(parseFloat(w.prijs)||0)>=pMin);
+  if(!isNaN(pMax)) list=list.filter(w=>(parseFloat(w.prijs)||0)<=pMax);
+  const sort=document.getElementById('sortSel').value;
+  if(sort==='name') list.sort((a,b)=>(a.naam||'').localeCompare(b.naam||''));
+  else if(sort==='price_asc') list.sort((a,b)=>(parseFloat(a.prijs)||0)-(parseFloat(b.prijs)||0));
+  else if(sort==='price_desc') list.sort((a,b)=>(parseFloat(b.prijs)||0)-(parseFloat(a.prijs)||0));
+  else if(sort==='rating') list.sort((a,b)=>(b.beoordeling||0)-(a.beoordeling||0));
+  const el=document.getElementById('wineList');
+  if(!list.length){
+    el.innerHTML=`<div class="empty"><div class="empty-icon">${wines.length===0?'🍾':'🔍'}</div><div class="empty-title">${wines.length===0?'Nog geen wijnen':'Geen resultaten'}</div><div class="empty-sub">${wines.length===0?'Scan een etiket om te beginnen':'Pas de filters aan'}</div></div>`;
+    return;
+  }
+  el.innerHTML=list.map(w=>wcHTML(w)).join('');
+}
+
+function wcHTML(w){
+  const t=TI[w.type]||TI.red;
+  const s=w.voorraad||0;
+  const sc=s===0?'b-zero':s<=2?'b-low':'b-ok';
+  const sl=s===0?'Uitgeput':s+' fles'+(s!==1?'sen':'');
+  const starsHtml=[1,2,3,4,5].map(i=>`<span class="star-s ${i<=(w.beoordeling||0)?'':'off'}">★</span>`).join('');
+  const photoEl=w.foto?`<img class="wc-photo" src="${w.foto}" alt="etiket">`:`<div class="wc-photo-placeholder">${t.emoji}</div>`;
+  const notesHtml=notesCardPreview(w.notities);
+  return `<div class="wc" id="wc-${w.id}" onclick="openPanel('${w.id}')">
+    <div class="wc-top">
+      ${photoEl}
+      <div class="wc-info">
+        <div class="wc-name">${esc(w.naam)}</div>
+        <div class="wc-prod">${esc([w.producent,w.regio].filter(Boolean).join(' · '))}</div>
+        <div class="wc-badges">
+          <span class="badge ${t.bc}">${t.label}</span>
+          ${w.jaar?`<span class="badge b-year">${w.jaar}</span>`:''}
+          ${w.prijs?`<span class="badge b-price">€${parseFloat(w.prijs).toFixed(2)}</span>`:''}
+          ${w.formaat&&w.formaat!=='standard'?`<span class="badge b-format">${FORMATS[w.formaat]?.short||w.formaat}</span>`:''}
+          <span class="badge ${sc}">${sl}</span>
+        </div>
+      </div>
+    </div>
+    ${notesHtml?`<div class="wc-notes">${notesHtml}</div>`:''}
+    <div class="wc-bottom">
+      <div class="wc-stars-small">${starsHtml}</div>
+      <div class="wc-actions" onclick="event.stopPropagation()">
+        <button class="btn-act add" onclick="adjStock('${w.id}',1)">+ Fles</button>
+        <button class="btn-act drk" onclick="adjStock('${w.id}',-1)"${s===0?' disabled':''}>− Drinken</button>
+      </div>
+    </div>
+  </div>`;
+}
+
+function esc(s){return(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');}
+
+async function adjStock(id,d){
+  const w=wines.find(x=>x.id===id);if(!w)return;
+  if(d<0&&!(w.voorraad||0)){toast('Geen flessen meer op voorraad');return;}
+  const nv=Math.max(0,(w.voorraad||0)+d);
+  const old=w.voorraad;w.voorraad=nv;
+  renderLib();refreshSubviewIfOpen();
+  if(document.getElementById('view-stock').classList.contains('active'))renderStock();
+  try{await sbPatch(id,{voorraad:nv});toast(d>0?'+1 fles toegevoegd':'Genoten van '+w.naam+' 🍷');}
+  catch(e){w.voorraad=old;renderLib();toast('Opslaan mislukt');}
+}
+
+/* ── DETAIL PANEL ── */
+function openPanel(id){
+  const w=wines.find(x=>x.id===id);if(!w)return;
+  panelWineId=id;panelStar=w.beoordeling||0;
+  const t=TI[w.type]||TI.red;
+  const phC=document.getElementById('panelPhotoContainer');
+  phC.innerHTML=w.foto?`<img class="panel-photo" src="${w.foto}" alt="etiket">`:`<div class="panel-photo-ph">${t.emoji}</div>`;
+  document.getElementById('panelTitle').textContent=w.naam||'';
+  document.getElementById('panelSub').textContent=[w.producent,w.regio].filter(Boolean).join(' · ');
+  const saveBtn=document.querySelector('.btn-save');
+  saveBtn.textContent='Opslaan';saveBtn.disabled=false;
+  document.getElementById('pName').value=w.naam||'';
+  document.getElementById('pProducer').value=w.producent||'';
+  document.getElementById('pYear').value=w.jaar||'';
+  document.getElementById('pType').value=w.type||'red';
+  document.getElementById('pGrape').value=w.druivenras||'';
+  document.getElementById('pRegion').value=w.regio||'';
+  document.getElementById('pPrice').value=w.prijs||'';
+  document.getElementById('pStock').value=w.voorraad||0;
+  document.getElementById('pFormat').value=VALID_FORMATS.includes(w.formaat)?w.formaat:'standard';
+  document.getElementById('pNotes').value=w.notities||'';
+  updateNotesPreview('pNotes','pNotesPreview','pNotesEdit');
+  updatePanelStars();
+  document.getElementById('panelOverlay').classList.add('open');
+  document.getElementById('detailPanel').classList.add('open');
+  document.getElementById('detailPanel').scrollTop=0;
+}
+
+function closePanel(){
+  document.getElementById('panelOverlay').classList.remove('open');
+  document.getElementById('detailPanel').classList.remove('open');
+  panelWineId=null;
+  ['pTypeNotice','pTypeLoading'].forEach(id=>{const el=document.getElementById(id);if(el)el.style.display='none';});
+}
+
+function setPanelStar(n){panelStar=panelStar===n?0:n;updatePanelStars();}
+function updatePanelStars(){document.querySelectorAll('.pstar').forEach((el,i)=>{el.classList.toggle('on',i<panelStar);});}
+
+async function savePanel(){
+  if(!panelWineId)return;
+  const w=wines.find(x=>x.id===panelWineId);if(!w)return;
+  const id=panelWineId;
+  const updated={
+    naam:document.getElementById('pName').value.trim()||w.naam,
+    producent:document.getElementById('pProducer').value.trim()||null,
+    jaar:parseInt(document.getElementById('pYear').value)||null,
+    type:VALID_TYPES.includes(document.getElementById('pType').value)?document.getElementById('pType').value:'red',
+    druivenras:document.getElementById('pGrape').value.trim()||null,
+    regio:document.getElementById('pRegion').value.trim()||null,
+    prijs:parseFloat(document.getElementById('pPrice').value)||null,
+    voorraad:parseInt(document.getElementById('pStock').value)||0,
+    notities:document.getElementById('pNotes').value.trim()||null,
+    formaat:VALID_FORMATS.includes(document.getElementById('pFormat').value)?document.getElementById('pFormat').value:'standard',
+    beoordeling:panelStar>0?panelStar:null,
+  };
+  const saveBtn=document.getElementById('detailPanel').querySelector('.btn-save');
+  saveBtn.textContent='Opslaan…';saveBtn.disabled=true;
+  try{
+    await sbPatch(id,updated);
+    Object.assign(w,updated);
+    closePanel();renderLib();
+    if(document.getElementById('view-stock').classList.contains('active'))renderStock();
+    refreshSubviewIfOpen();updateSubtitle();
+    toast('Wijzigingen opgeslagen ✓');
+  }catch(e){
+    console.error(e);saveBtn.textContent='Opslaan';saveBtn.disabled=false;
+    toast('Opslaan mislukt — controleer je verbinding');
+  }
+}
+
+async function deletePanelWine(){
+  if(!panelWineId)return;
+  if(!confirm('Wijn verwijderen?'))return;
+  const id=panelWineId;
+  closePanel();wines=wines.filter(x=>x.id!==id);
+  updateSubtitle();renderLib();
+  try{await sbDelete(id);toast('Wijn verwijderd');}
+  catch(e){toast('Verwijderen mislukt');await init();}
+}
+
+async function shareWine(){
+  if(!panelWineId)return;
+  const w=wines.find(x=>x.id===panelWineId);if(!w)return;
+  const t=TI[w.type]||TI.red;
+  const fmt=FORMATS[w.formaat||'standard']||FORMATS.standard;
+  const stars=w.beoordeling?'★'.repeat(w.beoordeling)+'☆'.repeat(5-w.beoordeling):'Niet beoordeeld';
+  const lines=[
+    `${t.emoji} ${w.naam}`,
+    w.producent?`Producent: ${w.producent}`:'',
+    [w.regio,w.druivenras].filter(Boolean).join(' · '),
+    w.jaar?`Oogstjaar: ${w.jaar}`:'',
+    `Type: ${t.label}`,
+    fmt.cl!==75?`Formaat: ${fmt.label}`:'',
+    w.prijs?`Prijs: €${parseFloat(w.prijs).toFixed(2)}`:'',
+    `Beoordeling: ${stars}`,'',
+    w.notities?`Smaakervaring & bewaren:\n${w.notities}`:'','',
+    '— Gedeeld via Wijnbibliotheek 🍷',
+  ].filter(l=>l!==undefined&&(l===''||l.length>0));
+  const text=lines.join('\n').replace(/\n{3,}/g,'\n\n').trim();
+  const title=`${w.naam}${w.jaar?' '+w.jaar:''}`;
+  if(navigator.share){
+    try{await navigator.share({title,text});}
+    catch(err){if(err.name!=='AbortError')toast('Delen mislukt: '+err.message);}
+  } else {
+    try{await navigator.clipboard.writeText(text);toast('Wijninfo gekopieerd naar klembord ✓');}
+    catch(err){prompt('Kopieer deze tekst:',text);}
+  }
+}
+
+/* ── STOCK ── */
+function renderStock(){
+  const tot=wines.reduce((s,w)=>s+(w.voorraad||0),0);
+  const val=wines.reduce((s,w)=>s+((w.voorraad||0)*(parseFloat(w.prijs)||0)),0);
+  const ins=wines.filter(w=>(w.voorraad||0)>0).length;
+  document.getElementById('statsGrid').innerHTML=`
+    <div class="stat-card" onclick="showSubview('all','Alle wijnen')"><div class="stat-num">${tot}</div><div class="stat-lbl">Flessen totaal</div></div>
+    <div class="stat-card" onclick="showSubview('all','Alle wijnen')"><div class="stat-num">${wines.length}</div><div class="stat-lbl">Verschillende wijnen</div></div>
+    <div class="stat-card" onclick="showSubview('instock','Op voorraad')"><div class="stat-num">€${Math.round(val)}</div><div class="stat-lbl">Waarde kelder</div></div>
+    <div class="stat-card" onclick="showSubview('instock','Op voorraad')"><div class="stat-num">${ins}</div><div class="stat-lbl">Op voorraad</div></div>`;
+  const byT={};wines.forEach(w=>{byT[w.type]=(byT[w.type]||0)+(w.voorraad||0);});
+  const bEl=document.getElementById('breakdown');
+  if(!Object.keys(byT).length){bEl.innerHTML='<div class="brk-row"><div class="brk-name" style="color:var(--muted)">Nog geen voorraad</div></div>';}
+  else bEl.innerHTML=Object.entries(byT).sort((a,b)=>b[1]-a[1]).map(([t,c])=>{
+    const ti=TI[t]||TI.red;
+    return`<div class="brk-row" onclick="showSubview('type:${t}','${ti.label}')"><div class="brk-dot" style="background:${ti.color}"></div><div class="brk-name">${ti.emoji} ${ti.label}</div><div class="brk-val">${c} fles${c!==1?'sen':''}</div></div>`;
+  }).join('');
+  const isRated=w=>w.beoordeling!=null&&w.beoordeling>0;
+  const unratedCount=wines.filter(w=>!isRated(w)).length;
+  const sEl=document.getElementById('starRatings');
+  const rows=[];
+  for(let s=5;s>=1;s--){
+    const count=wines.filter(w=>isRated(w)&&w.beoordeling===s).length;
+    if(count===0)continue;
+    const starsHtml=[1,2,3,4,5].map(i=>`<span class="srr-star ${i<=s?'':'off'}">★</span>`).join('');
+    rows.push(`<div class="star-rating-row" onclick="showSubview('stars:${s}','${s} sterren')"><div class="srr-stars">${starsHtml}</div><div class="srr-count">${count} wijn${count!==1?'en':''}</div><div class="srr-val">${count}</div></div>`);
+  }
+  if(unratedCount>0) rows.push(`<div class="star-rating-row" onclick="showSubview('stars:0','Niet beoordeeld')"><div class="srr-stars">${[1,2,3,4,5].map(()=>'<span class="srr-star off">★</span>').join('')}</div><div class="srr-count">Niet beoordeeld</div><div class="srr-val">${unratedCount}</div></div>`);
+  if(!rows.length) rows.push(`<div class="brk-row"><div class="brk-name" style="color:var(--muted)">Nog geen beoordelingen</div></div>`);
+  sEl.innerHTML=rows.join('');
+  const low=wines.filter(w=>(w.voorraad||0)>0&&(w.voorraad||0)<=2);
+  const lEl=document.getElementById('lowList');
+  if(!low.length){lEl.innerHTML='<p style="font-size:13px;color:var(--muted);padding:4px 0">Alle wijnen hebben voldoende voorraad ✓</p>';}
+  else lEl.innerHTML=low.map(w=>{
+    const t=TI[w.type]||TI.red;
+    return`<div class="low-card"><div class="low-thumb">${t.emoji}</div><div class="low-info"><div class="low-name">${esc(w.naam)}</div><div class="low-stk">${w.voorraad} fles${w.voorraad!==1?'sen':''} resterend</div></div><button class="btn-refill" onclick="adjStock('${w.id}',1);renderStock()">+ Bijvullen</button></div>`;
+  }).join('');
+}
+
+/* ── SUBVIEW ── */
+function showSubview(filterKey,title){
+  let list=[];
+  if(filterKey==='all') list=[...wines];
+  else if(filterKey==='instock') list=wines.filter(w=>(w.voorraad||0)>0);
+  else if(filterKey.startsWith('type:')) list=wines.filter(w=>w.type===filterKey.split(':')[1]);
+  else if(filterKey.startsWith('stars:')){
+    const s=parseInt(filterKey.split(':')[1]);
+    list=s===0?wines.filter(w=>!w.beoordeling||w.beoordeling===0):wines.filter(w=>w.beoordeling===s);
+  }
+  const sv=document.getElementById('subview');
+  sv.dataset.filterKey=filterKey;sv.dataset.filterTitle=title;
+  document.getElementById('subviewTitle').textContent=title+' ('+list.length+')';
+  document.getElementById('subviewList').innerHTML=list.length?list.map(w=>wcHTML(w)).join(''):'<div class="empty"><div class="empty-icon">🔍</div><div class="empty-title">Geen wijnen</div></div>';
+  sv.classList.add('open');
+}
+function closeSubview(){document.getElementById('subview').classList.remove('open');}
+function refreshSubviewIfOpen(){
+  const sv=document.getElementById('subview');if(!sv.classList.contains('open'))return;
+  showSubview(sv.dataset.filterKey,sv.dataset.filterTitle);
+}
+
+/* ── NOTES ── */
+function notesCardPreview(text){
+  if(!text)return'';
+  return text.split(/\n|(?=\b[A-ZÀ-Ö][a-zà-ö\s]{1,25}:)/).map(l=>l.trim()).filter(l=>l.length>0).slice(0,2).map(line=>{
+    const ci=line.indexOf(':');
+    if(ci>0&&ci<40){const lb=line.substring(0,ci+1);const r=line.substring(ci+1).trim();if(r)return`<strong>${esc(lb)}</strong> ${esc(r)}`;}
+    return esc(line);
+  }).join('<br>');
+}
+function formatNotes(text){
+  if(!text)return'';
+  return text.split(/\n|(?=\b[A-ZÀ-Ö][a-zà-ö\s]{1,25}:)/).map(l=>l.trim()).filter(l=>l.length>0).map(line=>{
+    const ci=line.indexOf(':');
+    if(ci>0&&ci<40){const lb=line.substring(0,ci+1);const r=line.substring(ci+1).trim();if(r)return`<p><strong>${esc(lb)}</strong> ${esc(r)}</p>`;}
+    return`<p>${esc(line)}</p>`;
+  }).join('');
+}
+function updateNotesPreview(tid,pid,eid){
+  const ta=document.getElementById(tid);
+  const preview=document.getElementById(pid);
+  const editBtn=eid?document.getElementById(eid):null;
+  const text=ta.value.trim();
+  if(text){
+    preview.innerHTML=formatNotes(text);preview.style.display='block';
+    ta.style.display='none';if(editBtn)editBtn.style.display='block';
+  } else {
+    preview.style.display='none';ta.style.display='block';if(editBtn)editBtn.style.display='none';
+  }
+}
+function editNotes(tid,pid,eid){
+  const ta=document.getElementById(tid);
+  document.getElementById(pid).style.display='none';
+  document.getElementById(eid).style.display='none';
+  ta.style.display='block';ta.focus();
+  ta.selectionStart=ta.selectionEnd=ta.value.length;
+  ta.onblur=()=>{if(ta.value.trim())updateNotesPreview(tid,pid,eid);};
+}
+
+/* ── TYPE WIJZIGING ── */
+async function onTypeChange(prefix){
+  const naam=(document.getElementById(prefix+'Name')||{value:''}).value.trim();
+  const producent=(document.getElementById(prefix+'Producer')||{value:''}).value.trim();
+  const jaar=parseInt((document.getElementById(prefix+'Year')||{value:''}).value)||null;
+  const type=document.getElementById(prefix+'Type').value;
+  const noticeEl=document.getElementById(prefix+'TypeNotice');
+  const loadingEl=document.getElementById(prefix+'TypeLoading');
+  if(!naam){noticeEl.style.display='none';return;}
+  noticeEl.style.display='none';loadingEl.style.display='block';
+  const typeLabels={red:'rode',white:'witte',rose:'rosé',sparkling:'mousseux',dessert:'dessert',port:'port'};
+  const prompt=`Je bent een wijnexpert. Geef informatie over "${naam}"${producent?' van '+producent:''} als ${typeLabels[type]||type} wijn${jaar?' uit jaar '+jaar:''}.
+Geef ALLEEN een JSON object terug, geen uitleg, geen markdown, geen backticks.
+{"bekend":true,"jaar_klopt":true,"dichtstbijzijnd_jaar":null,"druivenras":"ras","regio":"regio, land","prijs_schatting":14.99,"notities":"Aroma: ...\\nSmaak: ...\\nAfdronk: ...\\nServeertemperatuur: ...\\nSpijscombinaties: ...\\nBewaren: optimale bewaarperiode en drinkvenster.","melding":null}
+Begin direct met {`;
+  try{
+    const resp=await fetch(WORKER_URL,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({messages:[{role:'user',content:[{type:'text',text:prompt}]}]})});
+    loadingEl.style.display='none';
+    if(!resp.ok){toast('Wijninfo ophalen mislukt');return;}
+    const data=await resp.json();
+    const raw=(data.content?.[0]?.text||'').trim();
+    const s=raw.indexOf('{'),e=raw.lastIndexOf('}');
+    if(s===-1||e===-1){toast('Onverwacht antwoord');return;}
+    const info=JSON.parse(raw.substring(s,e+1));
+    if(info.druivenras) document.getElementById(prefix+'Grape').value=info.druivenras;
+    if(info.regio) document.getElementById(prefix+'Region').value=info.regio;
+    if(info.prijs_schatting) document.getElementById(prefix+'Price').value=info.prijs_schatting;
+    if(info.notities){const nid=prefix+'Notes';const pid=prefix+'NotesPreview';const eid=prefix+'NotesEdit';document.getElementById(nid).value=info.notities;updateNotesPreview(nid,pid,eid);}
+    if(!info.bekend||!info.jaar_klopt){
+      noticeEl.className='type-notice'+((!info.bekend)?'':' warn');
+      let html=!info.bekend
+        ?`<strong>⚠️ Wijn niet bekend</strong>${info.melding||'Deze wijn is niet gevonden.'}`
+        :`<strong>📅 Jaar ongebruikelijk</strong>${info.melding||'Het jaar is ongebruikelijk voor deze wijn.'}`;
+      if(!info.bekend===false&&info.dichtstbijzijnd_jaar){
+        html+=`<div class="type-notice-actions"><button onclick="acceptYear(${info.dichtstbijzijnd_jaar},'${prefix}','${prefix}TypeNotice')" class="btn-accept">Jaar ${info.dichtstbijzijnd_jaar} gebruiken</button><button onclick="document.getElementById('${prefix}TypeNotice').style.display='none'">Jaar behouden</button></div>`;
+      }
+      noticeEl.innerHTML=html;noticeEl.style.display='block';
+    } else {
+      noticeEl.style.display='none';
+      toast('Wijninfo bijgewerkt ✓');
+    }
+  }catch(err){loadingEl.style.display='none';toast('Wijninfo ophalen mislukt: '+err.message);}
+}
+function acceptYear(year,prefix,noticeId){document.getElementById(prefix+'Year').value=year;document.getElementById(noticeId).style.display='none';toast('Jaar bijgewerkt naar '+year);}
+
+/* ── DUPLICAAT DETECTIE ── */
+function checkDuplicate(scanned){
+  if(!scanned.naam||!wines.length)return null;
+  const norm=s=>(s||'').toLowerCase().replace(/[^a-z0-9]/g,'');
+  const sn=norm(scanned.naam);const sp=norm(scanned.producent);
+  const matches=wines.filter(w=>{
+    const wn=norm(w.naam);const wp=norm(w.producent);
+    const nm=wn.includes(sn)||sn.includes(wn)||(sn.length>4&&levenshtein(wn,sn)<3);
+    if(!nm)return false;
+    if(sp&&wp&&!wp.includes(sp)&&!sp.includes(wp))return false;
+    return true;
+  });
+  if(!matches.length)return null;
+  const exact=matches.find(w=>!scanned.jaar||!w.jaar||w.jaar===scanned.jaar);
+  if(exact){const stock=exact.voorraad||0;return{type:'exact',wine:exact,msg:`Al in je kelder! "${exact.naam}"${exact.jaar?' ('+exact.jaar+')':''} — ${stock} fles${stock!==1?'sen':''} op voorraad`};}
+  return{type:'variant',wine:matches[0],msg:`Lijkt op "${matches[0].naam}"${matches[0].jaar?' ('+matches[0].jaar+')':''} — ander jaar?`};
+}
+function levenshtein(a,b){
+  if(!a.length)return b.length;if(!b.length)return a.length;
+  const dp=Array.from({length:a.length+1},(_,i)=>Array.from({length:b.length+1},(_,j)=>i?j?0:i:j));
+  for(let i=1;i<=a.length;i++)for(let j=1;j<=b.length;j++)dp[i][j]=a[i-1]===b[j-1]?dp[i-1][j-1]:1+Math.min(dp[i-1][j],dp[i][j-1],dp[i-1][j-1]);
+  return dp[a.length][b.length];
+}
+function showDuplicateWarning(dup){
+  const existing=document.getElementById('dupWarning');if(existing)existing.remove();
+  const div=document.createElement('div');div.id='dupWarning';
+  div.style.cssText=`background:${dup.type==='exact'?'var(--warning-bg)':'#EEF4FF'};border:1px solid ${dup.type==='exact'?'var(--warning)':'#6B8FD4'};border-radius:var(--r);padding:12px 14px;margin-bottom:12px;`;
+  div.innerHTML=`<div style="font-size:13px;font-weight:600;color:${dup.type==='exact'?'var(--warning)':'#3A5FA0'};margin-bottom:6px;">${dup.type==='exact'?'⚠️ Wijn al aanwezig':'ℹ️ Vergelijkbare wijn gevonden'}</div><div style="font-size:13px;color:var(--ink);margin-bottom:10px;">${dup.msg}</div><div style="display:flex;gap:8px;"><button onclick="openPanelFromDup('${dup.wine.id}')" style="flex:1;padding:8px;border-radius:8px;border:1px solid var(--border);background:var(--card);font-size:13px;cursor:pointer;">Bekijk in bibliotheek</button><button onclick="dismissDup()" style="flex:1;padding:8px;border-radius:8px;border:none;background:var(--claret);color:#fff;font-size:13px;cursor:pointer;">Toch toevoegen</button></div>`;
+  const form=document.getElementById('scanForm');form.insertBefore(div,form.firstChild);
+}
+function dismissDup(){const el=document.getElementById('dupWarning');if(el)el.remove();toast('Etiket herkend ✓');}
+function openPanelFromDup(id){const el=document.getElementById('dupWarning');if(el)el.remove();switchTab('library');setTimeout(()=>openPanel(id),300);}
+
+/* ── SCAN ── */
+async function handleImage(e){
+  const file=e.target.files[0];if(!file)return;
+  const url=URL.createObjectURL(file);
+  const pv=document.getElementById('scanPreview');
+  pv.src=url;pv.style.display='block';
+  document.getElementById('scanPh').style.display='none';
+  document.getElementById('scanLoading').style.display='block';
+  document.getElementById('scanForm').style.display='none';
+  document.getElementById('manualBtn').style.display='none';
+  let b64,mimeType;
+  try{const r=await resizeAndEncode(file,1600);b64=r.b64;mimeType=r.mimeType;}
+  catch(err){document.getElementById('scanLoading').style.display='none';document.getElementById('scanForm').style.display='block';toast('Afbeelding kon niet worden geladen');clearForm();return;}
+  const prompt=`Je bent een Master of Wine. Analyseer dit wijnetiket zorgvuldig.
+Geef ALLEEN een JSON object terug. Geen uitleg, geen markdown, geen backticks.
+{"naam":"volledige wijnnaam","producent":"producent of domein","jaar":2021,"type":"red","druivenras":"ras of blend","regio":"appellation, land","prijs_schatting":14.99,"notities":"Aroma: ...\\nSmaak: ...\\nAfdronk: ...\\nServeertemperatuur: ...\\nSpijscombinaties: ...\\nBewaren: optimale bewaarperiode en drinkvenster."}
+type is exact één van: red, white, rose, sparkling, dessert, port
+Gebruik null voor onleesbare velden. Begin direct met {`;
+  document.getElementById('scanModelTxt').textContent='Etiket analyseren met AI…';
+  try{
+    const resp=await fetch(WORKER_URL,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({messages:[{role:'user',content:[{type:'image',source:{type:'base64',media_type:mimeType,data:b64}},{type:'text',text:prompt}]}]})});
+    if(!resp.ok){const et=await resp.text();let msg='Scan mislukt ('+resp.status+')';try{const ej=JSON.parse(et);if(ej.error?.message)msg=ej.error.message;}catch(e){}toast(msg);clearForm();document.getElementById('scanLoading').style.display='none';document.getElementById('scanForm').style.display='block';return;}
+    const data=await resp.json();
+    const raw=(data.content?.[0]?.text||'').trim();
+    if(!raw){toast('Geen resultaat ontvangen');clearForm();document.getElementById('scanLoading').style.display='none';document.getElementById('scanForm').style.display='block';return;}
+    const s=raw.indexOf('{'),end=raw.lastIndexOf('}');
+    if(s===-1||end===-1){toast('Kon geen wijninfo vinden');clearForm();document.getElementById('scanLoading').style.display='none';document.getElementById('scanForm').style.display='block';return;}
+    const wine=JSON.parse(raw.substring(s,end+1));
+    document.getElementById('fName').value=wine.naam||'';
+    document.getElementById('fProducer').value=wine.producent||'';
+    document.getElementById('fYear').value=wine.jaar||'';
+    document.getElementById('fType').value=VALID_TYPES.includes(wine.type)?wine.type:'red';
+    document.getElementById('fGrape').value=wine.druivenras||'';
+    document.getElementById('fRegion').value=wine.regio||'';
+    document.getElementById('fPrice').value=wine.prijs_schatting||'';
+    document.getElementById('fNotes').value=wine.notities||'';
+    updateNotesPreview('fNotes','fNotesPreview','fNotesEdit');
+    document.getElementById('fStock').value='1';
+    const dupMsg=checkDuplicate(wine);
+    if(dupMsg)showDuplicateWarning(dupMsg);else toast('Etiket herkend ✓');
+  }catch(err){console.error(err);toast('Scan mislukt: '+err.message);clearForm();}
+  document.getElementById('scanLoading').style.display='none';
+  document.getElementById('scanForm').style.display='block';
+}
+function resizeAndEncode(file,maxPx){
+  return new Promise((res,rej)=>{
+    const img=new Image();const u=URL.createObjectURL(file);
+    img.onload=()=>{URL.revokeObjectURL(u);let w=img.width,h=img.height;if(w>maxPx||h>maxPx){if(w>h){h=Math.round(h*maxPx/w);w=maxPx;}else{w=Math.round(w*maxPx/h);h=maxPx;}}const c=document.createElement('canvas');c.width=w;c.height=h;c.getContext('2d').drawImage(img,0,0,w,h);res({b64:c.toDataURL('image/jpeg',.85).split(',')[1],mimeType:'image/jpeg'});};
+    img.onerror=rej;img.src=u;
+  });
+}
+function showManual(){clearForm();document.getElementById('scanForm').style.display='block';document.getElementById('manualBtn').style.display='none';}
+function clearForm(){
+  ['fName','fProducer','fYear','fGrape','fRegion','fPrice'].forEach(id=>document.getElementById(id).value='');
+  document.getElementById('fNotes').value='';document.getElementById('fType').value='red';
+  document.getElementById('fStock').value='1';document.getElementById('fFormat').value='standard';
+  const fp=document.getElementById('fNotesPreview');if(fp){fp.innerHTML='';fp.style.display='none';}
+  const fta=document.getElementById('fNotes');if(fta)fta.style.display='block';
+  const feb=document.getElementById('fNotesEdit');if(feb)feb.style.display='none';
+}
+function resetScan(){
+  document.getElementById('fileInput').value='';
+  const pv=document.getElementById('scanPreview');pv.style.display='none';pv.src='';
+  document.getElementById('scanPh').style.display='flex';
+  document.getElementById('scanLoading').style.display='none';
+  document.getElementById('scanForm').style.display='none';
+  document.getElementById('manualBtn').style.display='block';
+  const dup=document.getElementById('dupWarning');if(dup)dup.remove();
+  ['fTypeNotice','fTypeLoading'].forEach(id=>{const el=document.getElementById(id);if(el)el.style.display='none';});
+  clearForm();
+}
+async function saveWine(){
+  const naam=document.getElementById('fName').value.trim();
+  if(!naam){toast('Vul een wijnnaam in');return;}
+  const pv=document.getElementById('scanPreview');let foto=null;
+  if(pv.src&&pv.style.display!=='none'){
+    try{const c=document.createElement('canvas');const s=120;let w=pv.naturalWidth,h=pv.naturalHeight;if(w>h){h=Math.round(h*s/w);w=s;}else{w=Math.round(w*s/h);h=s;}c.width=w;c.height=h;c.getContext('2d').drawImage(pv,0,0,w,h);foto=c.toDataURL('image/jpeg',.7);}catch(e){}
+  }
+  const payload={naam,producent:document.getElementById('fProducer').value.trim()||null,jaar:parseInt(document.getElementById('fYear').value)||null,type:document.getElementById('fType').value,druivenras:document.getElementById('fGrape').value.trim()||null,regio:document.getElementById('fRegion').value.trim()||null,prijs:parseFloat(document.getElementById('fPrice').value)||null,voorraad:parseInt(document.getElementById('fStock').value)||1,notities:document.getElementById('fNotes').value.trim()||null,formaat:document.getElementById('fFormat').value||'standard',foto};
+  try{const[saved]=await sbPost(payload);wines.unshift(saved);updateSubtitle();toast(naam+' toegevoegd 🍷');resetScan();switchTab('library');renderLib();}
+  catch(e){console.error(e);toast('Opslaan mislukt — controleer je verbinding');}
+}
+
+/* ── NAV ── */
+function switchTab(name){
+  document.querySelectorAll('.view').forEach(v=>v.classList.remove('active'));
+  document.querySelectorAll('.tab').forEach(b=>b.classList.remove('active'));
+  document.getElementById('view-'+name).classList.add('active');
+  document.getElementById('tab-'+name).classList.add('active');
+  if(name==='stock')renderStock();
+  if(name==='admin')loadInvites();
+  document.getElementById('subview').classList.remove('open');
+}
+
+/* ── TOAST ── */
+function toast(msg){const t=document.getElementById('toast');t.textContent=msg;t.classList.add('show');setTimeout(()=>t.classList.remove('show'),msg.length>60?6000:3000);}
+
+/* ── BOOT ── */
+init();
+</script>
+</body>
+</html>
