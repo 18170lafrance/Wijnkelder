@@ -342,12 +342,23 @@ main{padding-bottom:calc(var(--tabbar-h) + env(safe-area-inset-bottom,0px) + 16p
         Inloggen met Google
       </button>
     </div>
+    <div id="forgotLink" style="text-align:right;margin-top:6px;"><button style="background:none;border:none;color:var(--claret);font-size:12px;cursor:pointer;text-decoration:underline;" onclick="showForgotPassword()">Wachtwoord vergeten?</button></div>
+    <div id="forgotForm" style="display:none">
+      <div class="lf"><label>E-mailadres</label><input type="email" id="resetEmail" placeholder="naam@voorbeeld.nl" autocomplete="email"></div>
+      <button class="btn-login" onclick="handleForgotPassword()">Stuur reset-link</button>
+      <div style="text-align:center;margin-top:10px;"><button style="background:none;border:none;color:var(--claret);font-size:13px;cursor:pointer;text-decoration:underline;" onclick="hideForgotPassword()">Terug naar inloggen</button></div>
+    </div>
+    <div id="resetForm" style="display:none">
+      <div class="lf"><label>Nieuw wachtwoord</label><input type="password" id="newPassword" placeholder="Nieuw wachtwoord"></div>
+      <div class="lf"><label>Bevestig wachtwoord</label><input type="password" id="newPassword2" placeholder="Herhaal wachtwoord"></div>
+      <button class="btn-login" onclick="handleResetPassword()">Wachtwoord opslaan</button>
+    </div>
     <div class="login-err" id="loginErr"></div>
     <div class="login-info" id="loginInfo"></div>
     <div class="invite-notice" id="inviteNotice" style="display:none">
       ⚠️ Registreren is alleen mogelijk na een uitnodiging. Neem contact op met de beheerder.
     </div>
-    <div class="login-toggle">
+    <div class="login-toggle" id="loginToggle">
       <span id="toggleText">Nog geen account?</span>
       <button onclick="toggleAuthMode()">Registreren</button>
     </div>
@@ -547,7 +558,7 @@ main{padding-bottom:calc(var(--tabbar-h) + env(safe-area-inset-bottom,0px) + 16p
       <div class="handleiding-header">
         <div style="font-size:48px;margin-bottom:8px">🍷</div>
         <div class="handleiding-title">Wijnbieb</div>
-        <div class="handleiding-sub">Gebruikershandleiding · v2.0-multi</div>
+        <div class="handleiding-sub">Gebruikershandleiding · v2.01-multi</div>
       </div>
 
       <div class="h-section">
@@ -627,7 +638,7 @@ main{padding-bottom:calc(var(--tabbar-h) + env(safe-area-inset-bottom,0px) + 16p
         <div class="h-drink"><span class="h-drink-dot" style="background:#9A8E88"></span><strong>Voorbij</strong> — Voorbij het optimale drinkvenster.</div>
       </div>
 
-      <div class="handleiding-footer">Wijnbieb v2.0-multi — Veel plezier met je collectie! 🥂</div>
+      <div class="handleiding-footer">Wijnbieb v2.01-multi — Veel plezier met je collectie! 🥂</div>
     </div>
   </div>
 </main>
@@ -734,7 +745,7 @@ main{padding-bottom:calc(var(--tabbar-h) + env(safe-area-inset-bottom,0px) + 16p
 </nav>
 
 <div id="toast"></div>
-<div id="version">v2.0-multi</div>
+<div id="version">v2.01-multi</div>
 
 <script>
 /* ── CONFIG ── */
@@ -745,7 +756,7 @@ const ADMIN_EMAIL='18170lafrance@gmail.com';
 
 /* ── SUPABASE CLIENT ── */
 const {createClient}=supabase;
-const sb=createClient(SB_URL,SB_ANON,{auth:{autoRefreshToken:true,persistSession:true,detectSessionInUrl:true}});
+const sb=createClient(SB_URL,SB_ANON,{auth:{autoRefreshToken:true,persistSession:true,detectSessionInUrl:true,flowType:'pkce'}});
 
 /* ── STATE ── */
 let wines=[];
@@ -821,7 +832,7 @@ async function handleGoogleAuth(){
   errEl.style.display='none';
   const baseUrl=window.location.origin+window.location.pathname;
   console.log('Google OAuth redirect naar:',baseUrl);
-  const{error}=await sb.auth.signInWithOAuth({provider:'google',options:{redirectTo:baseUrl}});
+  const{error}=await sb.auth.signInWithOAuth({provider:'google',options:{redirectTo:baseUrl,queryParams:{access_type:'offline',prompt:'consent'}}});
   if(error){
     console.error('Google Auth fout:',error);
     errEl.textContent='Google inloggen mislukt: '+error.message;
@@ -835,6 +846,63 @@ async function handleLogout(){
   currentUser=null;wines=[];locaties=[];wijnLocaties={};
   showLoginScreen();
   document.getElementById('hSub').textContent='Verbinding instellen…';
+}
+
+function showForgotPassword(){
+  document.getElementById('emailForm').style.display='none';
+  document.getElementById('forgotLink').style.display='none';
+  document.getElementById('forgotForm').style.display='block';
+  document.getElementById('resetForm').style.display='none';
+  document.getElementById('loginToggle').style.display='none';
+  document.getElementById('loginHeading').textContent='Wachtwoord vergeten';
+  document.getElementById('loginErr').style.display='none';
+  document.getElementById('loginInfo').style.display='none';
+}
+function hideForgotPassword(){
+  document.getElementById('emailForm').style.display='block';
+  document.getElementById('forgotLink').style.display='block';
+  document.getElementById('forgotForm').style.display='none';
+  document.getElementById('resetForm').style.display='none';
+  document.getElementById('loginToggle').style.display='block';
+  document.getElementById('loginHeading').textContent=authMode==='login'?'Inloggen':'Registreren';
+  document.getElementById('loginErr').style.display='none';
+  document.getElementById('loginInfo').style.display='none';
+}
+async function handleForgotPassword(){
+  const email=document.getElementById('resetEmail').value.trim();
+  const errEl=document.getElementById('loginErr');
+  const infoEl=document.getElementById('loginInfo');
+  errEl.style.display='none';infoEl.style.display='none';
+  if(!email){errEl.textContent='Vul je e-mailadres in';errEl.style.display='block';return;}
+  const baseUrl=window.location.origin+window.location.pathname;
+  const{error}=await sb.auth.resetPasswordForEmail(email,{redirectTo:baseUrl});
+  if(error){errEl.textContent=error.message;errEl.style.display='block';return;}
+  infoEl.textContent='Reset-link verzonden! Controleer je inbox.';infoEl.style.display='block';
+}
+function showResetForm(){
+  document.getElementById('emailForm').style.display='none';
+  document.getElementById('forgotLink').style.display='none';
+  document.getElementById('forgotForm').style.display='none';
+  document.getElementById('resetForm').style.display='block';
+  document.getElementById('loginToggle').style.display='none';
+  document.getElementById('loginHeading').textContent='Nieuw wachtwoord instellen';
+  document.getElementById('loginErr').style.display='none';
+  document.getElementById('loginInfo').style.display='none';
+  showLoginScreen();
+}
+async function handleResetPassword(){
+  const pw=document.getElementById('newPassword').value;
+  const pw2=document.getElementById('newPassword2').value;
+  const errEl=document.getElementById('loginErr');
+  const infoEl=document.getElementById('loginInfo');
+  errEl.style.display='none';infoEl.style.display='none';
+  if(!pw||pw.length<6){errEl.textContent='Wachtwoord moet minimaal 6 tekens zijn';errEl.style.display='block';return;}
+  if(pw!==pw2){errEl.textContent='Wachtwoorden komen niet overeen';errEl.style.display='block';return;}
+  const{error}=await sb.auth.updateUser({password:pw});
+  if(error){errEl.textContent=error.message;errEl.style.display='block';return;}
+  infoEl.textContent='Wachtwoord gewijzigd! Je wordt ingelogd…';infoEl.style.display='block';
+  document.getElementById('resetForm').style.display='none';
+  setTimeout(()=>hideForgotPassword(),2000);
 }
 
 function updateUserUI(user){
@@ -1108,6 +1176,10 @@ async function loadUserData(){
 
 sb.auth.onAuthStateChange(async(event,session)=>{
   console.log('Auth event:',event,session?.user?.email||'geen sessie');
+  if(event==='PASSWORD_RECOVERY'){
+    showResetForm();
+    return;
+  }
   if((event==='SIGNED_IN'||event==='TOKEN_REFRESHED'||event==='INITIAL_SESSION')&&session){
     if(authLoaded&&event==='TOKEN_REFRESHED') return;
     authLoaded=true;
