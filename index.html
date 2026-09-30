@@ -1239,12 +1239,13 @@ function drinkStatus(w){
   const nu=HUIDIG_JAAR;
   if(tot&&nu>tot) return{key:'past',label:'Voorbij drinkvenster',cls:'b-drink-past',icon:'⚪'};
   if(van&&nu<van) return{key:'wait',label:`Bewaren tot ${van}`,cls:'b-drink-wait',icon:'🔵'};
-  if(tot&&nu>=van&&nu<=tot){
+  if(van&&tot&&nu>=van&&nu<=tot){
     const jaren=tot-nu;
     if(jaren<=2) return{key:'soon',label:`Binnenkort: tot ${tot}`,cls:'b-drink-soon',icon:'🟡'};
     return{key:'now',label:`Nu drinken: t/m ${tot}`,cls:'b-drink-now',icon:'🟢'};
   }
   if(!van&&tot&&nu<=tot) return{key:'now',label:`Nu drinken: t/m ${tot}`,cls:'b-drink-now',icon:'🟢'};
+  if(van&&!tot&&nu>=van) return{key:'now',label:`Nu drinken: vanaf ${van}`,cls:'b-drink-now',icon:'🟢'};
   return null;
 }
 
@@ -1564,7 +1565,6 @@ function renderStock(){
       return`<div class="brk-row" onclick="showSubview('locatie:${loc.id}','📍 ${esc(loc.naam)}')"><span style="font-size:16px;margin-right:10px">📍</span><div class="brk-name">${esc(loc.naam)}<span style="font-size:11px;color:var(--muted);margin-left:6px">${wijnenCount} wijn${wijnenCount!==1?'en':''}</span></div><div class="brk-val">${flessen} fles${flessen!==1?'sen':''}</div></div>`;
     }).join('');}
   }
-  renderLocatieBeheer();
   // Per drinkvenster
   const dwCats=[{key:'now',label:'Nu drinken',icon:'🟢'},{key:'soon',label:'Binnenkort',icon:'🟡'},{key:'wait',label:'Bewaren',icon:'🔵'},{key:'past',label:'Voorbij venster',icon:'⚪'}];
   const dwEl=document.getElementById('drinkWindow');
