@@ -246,6 +246,26 @@ main{padding-bottom:calc(var(--tabbar-h) + env(safe-area-inset-bottom,0px) + 16p
 .loader-full .spinner{margin:0 auto 16px;}
 .loader-full p{font-size:14px;color:var(--muted);}
 
+/* HANDLEIDING */
+.handleiding-wrap{padding:14px 14px 24px;}
+.handleiding-header{text-align:center;padding:20px 0 16px;}
+.handleiding-title{font-family:Georgia,serif;font-size:24px;color:var(--claret);}
+.handleiding-sub{font-size:13px;color:var(--muted);margin-top:4px;}
+.h-section{background:var(--card);border:1px solid var(--border);border-radius:var(--r);padding:16px;margin-bottom:12px;}
+.h-section-title{font-family:Georgia,serif;font-size:17px;color:var(--claret);margin-bottom:10px;}
+.h-section p{font-size:14px;line-height:1.6;color:var(--ink);margin-bottom:8px;}
+.h-subsection{font-size:14px;font-weight:600;color:var(--ink);margin:12px 0 6px;}
+.h-item{display:flex;gap:10px;align-items:flex-start;padding:6px 0;}
+.h-item-icon{font-size:18px;flex-shrink:0;margin-top:1px;}
+.h-item div{font-size:14px;line-height:1.5;color:var(--ink);}
+.h-step{display:flex;gap:10px;align-items:flex-start;padding:5px 0;}
+.h-step-num{width:22px;height:22px;border-radius:50%;background:var(--claret);color:#fff;font-size:12px;font-weight:600;display:flex;align-items:center;justify-content:center;flex-shrink:0;margin-top:1px;}
+.h-step{font-size:14px;line-height:1.5;color:var(--ink);}
+.h-tip{background:var(--warm);border-left:3px solid var(--gold);border-radius:0 8px 8px 0;padding:10px 12px;margin-top:10px;font-size:13px;color:var(--ink);line-height:1.5;}
+.h-drink{display:flex;gap:10px;align-items:center;padding:5px 0;font-size:14px;color:var(--ink);}
+.h-drink-dot{width:12px;height:12px;border-radius:50%;flex-shrink:0;}
+.handleiding-footer{text-align:center;font-size:12px;color:var(--muted);font-style:italic;padding:12px 0;}
+
 /* TOAST + VERSION */
 #version{position:fixed;bottom:calc(var(--tabbar-h) + env(safe-area-inset-bottom,0px) + 4px);right:10px;font-size:10px;color:var(--muted);opacity:.5;pointer-events:none;z-index:50;}
 #toast{position:fixed;bottom:calc(var(--tabbar-h) + env(safe-area-inset-bottom,0px) + 12px);left:50%;transform:translateX(-50%) translateY(12px);background:var(--ink);color:#fff;padding:10px 18px;border-radius:16px;font-size:13px;opacity:0;transition:opacity .2s,transform .2s;pointer-events:none;z-index:400;white-space:normal;max-width:calc(100vw - 32px);text-align:center;line-height:1.5;}
@@ -412,6 +432,68 @@ main{padding-bottom:calc(var(--tabbar-h) + env(safe-area-inset-bottom,0px) + 16p
     </div>
   </div>
 
+  <!-- HANDLEIDING -->
+  <div class="view" id="view-handleiding">
+    <div class="handleiding-wrap">
+      <div class="handleiding-header">
+        <div style="font-size:48px;margin-bottom:8px">🍷</div>
+        <div class="handleiding-title">Wijnbibliotheek</div>
+        <div class="handleiding-sub">Gebruikershandleiding · v1.65-multi</div>
+      </div>
+
+      <div class="h-section">
+        <div class="h-section-title">1. Wat is de Wijnbibliotheek?</div>
+        <p>De Wijnbibliotheek is een gedeelde web-app waarmee je samen met anderen je wijncollectie beheert. Je kunt wijnen toevoegen door een etiket te scannen of handmatig in te voeren, voorraad bijhouden en beoordelingen geven.</p>
+      </div>
+
+      <div class="h-section">
+        <div class="h-section-title">2. Navigatie</div>
+        <p>De app heeft vier tabbladen onderaan het scherm:</p>
+        <div class="h-item"><span class="h-item-icon">📚</span><div><strong>Bibliotheek</strong> — Je volledige wijncollectie met filters en sortering.</div></div>
+        <div class="h-item"><span class="h-item-icon">📷</span><div><strong>Scan</strong> — Voeg een wijn toe via foto of handmatige invoer.</div></div>
+        <div class="h-item"><span class="h-item-icon">📦</span><div><strong>Voorraad</strong> — Statistieken: totalen per type, beoordeling en lage voorraad.</div></div>
+        <div class="h-item"><span class="h-item-icon">📖</span><div><strong>Handleiding</strong> — Deze pagina met uitleg over de app.</div></div>
+        <div class="h-item"><span class="h-item-icon">⚙️</span><div><strong>Beheer</strong> — Alleen zichtbaar voor beheerders: uitnodigingen en accountinfo.</div></div>
+      </div>
+
+      <div class="h-section">
+        <div class="h-section-title">3. Wijn toevoegen</div>
+        <div class="h-subsection">Via etiket scannen</div>
+        <div class="h-step"><span class="h-step-num">1</span>Ga naar het Scan-tabblad en tik op het cameragebied.</div>
+        <div class="h-step"><span class="h-step-num">2</span>Maak een foto van het wijnetiket of kies een afbeelding.</div>
+        <div class="h-step"><span class="h-step-num">3</span>De AI herkent het etiket en vult de gegevens automatisch in.</div>
+        <div class="h-step"><span class="h-step-num">4</span>Controleer de gegevens, pas aan indien nodig, en tik <strong>Toevoegen</strong>.</div>
+        <div class="h-subsection">Handmatig invoeren</div>
+        <div class="h-step"><span class="h-step-num">1</span>Tik onderaan het Scan-tabblad op "+ Handmatig invoeren".</div>
+        <div class="h-step"><span class="h-step-num">2</span>Vul naam, producent, jaar, type en overige velden in.</div>
+        <div class="h-step"><span class="h-step-num">3</span>Tik op <strong>Toevoegen aan bibliotheek</strong>.</div>
+        <div class="h-tip">💡 Bij het wijzigen van het wijntype haalt de app automatisch extra informatie op (druivenras, regio, geschatte prijs en proefnotities).</div>
+      </div>
+
+      <div class="h-section">
+        <div class="h-section-title">4. Bibliotheek gebruiken</div>
+        <div class="h-subsection">Filteren</div>
+        <p>Tik op "Filter" om de filterbalk te openen. Kies een type (Rood, Wit, Rosé, etc.) of voorraadstatus. Tik "Wis" om het filter te resetten.</p>
+        <div class="h-subsection">Sorteren en prijsfilter</div>
+        <p>Gebruik het sorteermenu (Nieuwste, Naam, Prijs, Beoordeling). Vul optioneel een minimum- en maximumprijs in.</p>
+        <div class="h-subsection">Wijndetails bewerken</div>
+        <p>Tik op een wijnkaart om het detailpaneel te openen. Hier kun je alle gegevens aanpassen, een beoordeling geven (1–5 sterren), notities toevoegen en de wijn delen of verwijderen.</p>
+      </div>
+
+      <div class="h-section">
+        <div class="h-section-title">5. Voorraad beheren</div>
+        <p>Gebruik de + en − knoppen op elke wijnkaart of in het detailpaneel om flessen toe te voegen of af te trekken. Het Voorraad-tabblad toont lage voorraad automatisch als waarschuwing.</p>
+      </div>
+
+      <div class="h-section">
+        <div class="h-section-title">6. Gedeelde kelder</div>
+        <p>Deze app wordt gedeeld met andere gebruikers. Iedereen met toegang ziet dezelfde wijncollectie. Beheerders kunnen nieuwe gebruikers uitnodigen via het Beheer-tabblad.</p>
+      </div>
+
+      <div class="handleiding-footer">Wijnbibliotheek v1.65-multi — Veel plezier met je collectie! 🥂</div>
+    </div>
+  </div>
+
   <!-- ADMIN -->
   <div class="view" id="view-admin">
     <div class="admin-wrap">
@@ -516,11 +598,12 @@ main{padding-bottom:calc(var(--tabbar-h) + env(safe-area-inset-bottom,0px) + 16p
   <button class="tab active" id="tab-library" onclick="switchTab('library')"><span class="ti">📚</span>Bibliotheek</button>
   <button class="tab" id="tab-scan" onclick="switchTab('scan')"><span class="ti">📷</span>Scan</button>
   <button class="tab" id="tab-stock" onclick="switchTab('stock')"><span class="ti">📦</span>Voorraad</button>
+  <button class="tab" id="tab-handleiding" onclick="switchTab('handleiding')"><span class="ti">📖</span>Handleiding</button>
   <button class="tab" id="tab-admin" onclick="switchTab('admin')" style="display:none"><span class="ti">⚙️</span>Beheer</button>
 </nav>
 
 <div id="toast"></div>
-<div id="version">v1.64-multi</div>
+<div id="version">v1.65-multi</div>
 
 <script>
 /* ── CONFIG ── */
