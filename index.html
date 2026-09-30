@@ -1043,7 +1043,24 @@ async function init(){
   updateUserUI(session.user);
   document.getElementById('hSub').textContent='Laden…';
   try{
-    [wines,locaties]=await Promise.all([sbGet(),sbGetLocaties()]);
+    wines=await sbGet();
+  }catch(e){
+    console.error('Init fout:',e);
+    document.getElementById('hSub').textContent='Fout bij laden';
+    toast('Kan wijnen niet laden');
+    return;
+  }
+  try{
+    locaties=await sbGetLocaties();
+  }catch(e){
+    console.error('Locaties laden mislukt:',e);
+    const msg=e.message||'';
+    if(msg.includes('does not exist')){
+      toast('Locaties-tabel ontbreekt in database — voer het SQL-setup-script uit in Supabase SQL Editor');
+    }
+    locaties=[];
+  }
+  try{
     const alleWL=await sbGetAlleWijnLocaties();
     wijnLocaties={};
     alleWL.forEach(wl=>{
@@ -1051,22 +1068,26 @@ async function init(){
       const loc=locaties.find(l=>l.id===wl.locatie_id);
       if(loc) wijnLocaties[wl.wijn_id].push({locatie_id:wl.locatie_id,naam:loc.naam,voorraad:wl.voorraad||0,positie:wl.positie||''});
     });
-    populateLocatieSelects();
-    updateSubtitle();
-    renderLib();
   }catch(e){
-    console.error('Init fout:',e);
-    document.getElementById('hSub').textContent='Fout bij laden';
-    toast('Kan wijnen niet laden');
+    console.error('Wijn-locaties laden mislukt:',e);
+    wijnLocaties={};
   }
+  populateLocatieSelects();
+  updateSubtitle();
+  renderLib();
 }
 
 sb.auth.onAuthStateChange(async(event,session)=>{
   if(event==='SIGNED_IN'&&session){
     hideLoginScreen();
     updateUserUI(session.user);
+    try{ wines=await sbGet(); }catch(e){ toast('Wijnen laden mislukt'); return; }
+    try{ locaties=await sbGetLocaties(); }catch(e){
+      console.error('Locaties laden:',e);
+      if((e.message||'').includes('does not exist')) toast('Locaties-tabel ontbreekt — voer SQL-setup-script uit in Supabase');
+      locaties=[];
+    }
     try{
-      [wines,locaties]=await Promise.all([sbGet(),sbGetLocaties()]);
       const alleWL=await sbGetAlleWijnLocaties();
       wijnLocaties={};
       alleWL.forEach(wl=>{
@@ -1074,10 +1095,10 @@ sb.auth.onAuthStateChange(async(event,session)=>{
         const loc=locaties.find(l=>l.id===wl.locatie_id);
         if(loc) wijnLocaties[wl.wijn_id].push({locatie_id:wl.locatie_id,naam:loc.naam,voorraad:wl.voorraad||0,positie:wl.positie||''});
       });
-      populateLocatieSelects();
-      updateSubtitle();
-      renderLib();
-    }catch(e){toast('Laden mislukt');}
+    }catch(e){ wijnLocaties={}; }
+    populateLocatieSelects();
+    updateSubtitle();
+    renderLib();
   } else if(event==='SIGNED_OUT'){
     showLoginScreen();
   }
@@ -1121,7 +1142,13 @@ async function addLocatie(){
     populateLocatieSelects();
     renderLocatieBeheer();
     toast(`Locatie "${naam}" toegevoegd ✓`);
-  }catch(e){toast('Toevoegen mislukt: '+e.message);}
+  }catch(e){
+    console.error('addLocatie fout:',e);
+    const msg=e.message||'';
+    if(msg.includes('does not exist')) toast('Locaties-tabel ontbreekt in database — voer het SQL-setup-script uit in Supabase SQL Editor');
+    else if(msg.includes('row-level security')) toast('Geen toegang — controleer RLS policies voor locaties');
+    else toast('Locatie toevoegen mislukt: '+msg);
+  }
 }
 
 async function deleteLocatie(id){
@@ -1180,10 +1207,14 @@ async function addLocatieToWine(wijnId){
     await sbPatch(wijnId,{voorraad:totaal});
     toast('Locatie "'+loc.naam+'" toegevoegd met 1 fles');
   }catch(e){
+    console.error('addLocatieToWine fout:',e);
     wijnLocaties[wijnId]=wijnLocaties[wijnId].filter(x=>x.locatie_id!==locatieId);
     w.voorraad=w.voorraad-1;
     renderPanelLocaties(wijnId);renderLib();
-    toast('Opslaan mislukt');
+    const msg=e.message||'';
+    if(msg.includes('relation')&&msg.includes('does not exist')) toast('Database-tabel ontbreekt — voer het SQL-setup-script uit in Supabase');
+    else if(msg.includes('violates row-level security')) toast('Geen toegang — controleer RLS policies in Supabase');
+    else toast('Locatie opslaan mislukt: '+msg);
   }
 }
 
@@ -1228,7 +1259,7 @@ async function adjStockLocatie(wijnId,locatieId,delta){
     await sbUpsertWijnLocatie(wijnId,locatieId,nieuw);
     await sbPatch(wijnId,{voorraad:totaal});
     toast(delta>0?'+1 fles op '+wl.naam:'−1 fles van '+wl.naam);
-  }catch(e){wl.voorraad=oud;w.voorraad=w.voorraad-delta;renderPanelLocaties(wijnId);renderLib();toast('Opslaan mislukt');}
+  }catch(e){console.error('adjStockLocatie fout:',e);wl.voorraad=oud;w.voorraad=w.voorraad-delta;renderPanelLocaties(wijnId);renderLib();const msg=e.message||'';if(msg.includes('does not exist'))toast('Database-tabel ontbreekt — voer het SQL-setup-script uit');else toast('Voorraad opslaan mislukt: '+msg);}
 }
 
 async function setKaartLocatie(wijnId,locatieId){
