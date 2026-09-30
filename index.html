@@ -802,11 +802,20 @@ async function handleEmailAuth(){
 }
 
 async function handleGoogleAuth(){
-  const{error}=await sb.auth.signInWithOAuth({provider:'google',options:{redirectTo:window.location.href}});
-  if(error){document.getElementById('loginErr').textContent=error.message;document.getElementById('loginErr').style.display='block';}
+  const errEl=document.getElementById('loginErr');
+  errEl.style.display='none';
+  const baseUrl=window.location.origin+window.location.pathname;
+  console.log('Google OAuth redirect naar:',baseUrl);
+  const{error}=await sb.auth.signInWithOAuth({provider:'google',options:{redirectTo:baseUrl}});
+  if(error){
+    console.error('Google Auth fout:',error);
+    errEl.textContent='Google inloggen mislukt: '+error.message;
+    errEl.style.display='block';
+  }
 }
 
 async function handleLogout(){
+  authLoaded=false;
   await sb.auth.signOut();
   currentUser=null;wines=[];locaties=[];wijnLocaties={};
   showLoginScreen();
@@ -1037,27 +1046,35 @@ function editNotes(tid,pid,eid){
 
 /* ── INIT ── */
 async function init(){
-  const{data:{session}}=await sb.auth.getSession();
-  if(!session){showLoginScreen();return;}
+  const{data:{session},error}=await sb.auth.getSession();
+  console.log('Init sessie:',session?.user?.email||'geen',error||'ok');
+  if(!session){
+    showLoginScreen();
+    if(window.location.hash&&window.location.hash.includes('error')){
+      const params=new URLSearchParams(window.location.hash.substring(1));
+      const errMsg=params.get('error_description')||params.get('error')||'';
+      if(errMsg){
+        document.getElementById('loginErr').textContent='Login fout: '+decodeURIComponent(errMsg);
+        document.getElementById('loginErr').style.display='block';
+        console.error('OAuth callback fout:',errMsg);
+      }
+      history.replaceState(null,'',window.location.pathname);
+    }
+    return;
+  }
+  authLoaded=true;
   hideLoginScreen();
   updateUserUI(session.user);
   document.getElementById('hSub').textContent='Laden…';
-  try{
-    wines=await sbGet();
-  }catch(e){
-    console.error('Init fout:',e);
-    document.getElementById('hSub').textContent='Fout bij laden';
-    toast('Kan wijnen niet laden');
-    return;
-  }
-  try{
-    locaties=await sbGetLocaties();
-  }catch(e){
-    console.error('Locaties laden mislukt:',e);
-    const msg=e.message||'';
-    if(msg.includes('does not exist')){
-      toast('Locaties-tabel ontbreekt in database — voer het SQL-setup-script uit in Supabase SQL Editor');
-    }
+  await loadUserData();
+}
+
+let authLoaded=false;
+async function loadUserData(){
+  try{ wines=await sbGet(); }catch(e){ toast('Wijnen laden mislukt'); return; }
+  try{ locaties=await sbGetLocaties(); }catch(e){
+    console.error('Locaties laden:',e);
+    if((e.message||'').includes('does not exist')) toast('Locaties-tabel ontbreekt — voer SQL-setup-script uit in Supabase');
     locaties=[];
   }
   try{
@@ -1068,38 +1085,24 @@ async function init(){
       const loc=locaties.find(l=>l.id===wl.locatie_id);
       if(loc) wijnLocaties[wl.wijn_id].push({locatie_id:wl.locatie_id,naam:loc.naam,voorraad:wl.voorraad||0,positie:wl.positie||''});
     });
-  }catch(e){
-    console.error('Wijn-locaties laden mislukt:',e);
-    wijnLocaties={};
-  }
+  }catch(e){ wijnLocaties={}; }
   populateLocatieSelects();
   updateSubtitle();
   renderLib();
 }
 
 sb.auth.onAuthStateChange(async(event,session)=>{
-  if(event==='SIGNED_IN'&&session){
+  console.log('Auth event:',event,session?.user?.email||'geen sessie');
+  if((event==='SIGNED_IN'||event==='TOKEN_REFRESHED'||event==='INITIAL_SESSION')&&session){
+    if(authLoaded&&event==='TOKEN_REFRESHED') return;
+    authLoaded=true;
     hideLoginScreen();
     updateUserUI(session.user);
-    try{ wines=await sbGet(); }catch(e){ toast('Wijnen laden mislukt'); return; }
-    try{ locaties=await sbGetLocaties(); }catch(e){
-      console.error('Locaties laden:',e);
-      if((e.message||'').includes('does not exist')) toast('Locaties-tabel ontbreekt — voer SQL-setup-script uit in Supabase');
-      locaties=[];
-    }
-    try{
-      const alleWL=await sbGetAlleWijnLocaties();
-      wijnLocaties={};
-      alleWL.forEach(wl=>{
-        if(!wijnLocaties[wl.wijn_id]) wijnLocaties[wl.wijn_id]=[];
-        const loc=locaties.find(l=>l.id===wl.locatie_id);
-        if(loc) wijnLocaties[wl.wijn_id].push({locatie_id:wl.locatie_id,naam:loc.naam,voorraad:wl.voorraad||0,positie:wl.positie||''});
-      });
-    }catch(e){ wijnLocaties={}; }
-    populateLocatieSelects();
-    updateSubtitle();
-    renderLib();
+    document.getElementById('hSub').textContent='Laden…';
+    await loadUserData();
   } else if(event==='SIGNED_OUT'){
+    authLoaded=false;
+    currentUser=null;wines=[];locaties=[];wijnLocaties={};
     showLoginScreen();
   }
 });
