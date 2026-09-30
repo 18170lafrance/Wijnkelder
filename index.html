@@ -896,11 +896,22 @@ async function sbGetAlleWijnLocaties(){
 }
 async function sbUpsertWijnLocatie(wijnId,locatieId,voorraad){
   const token=await getToken();
-  const r=await fetch(SB_URL+'/rest/v1/wijn_locaties',{
-    method:'POST',
-    headers:{...hdrs(token),'Prefer':'return=representation,resolution=merge-duplicates'},
-    body:JSON.stringify({wijn_id:wijnId,locatie_id:locatieId,voorraad})
-  });
+  const existing=await fetch(SB_URL+'/rest/v1/wijn_locaties?wijn_id=eq.'+wijnId+'&locatie_id=eq.'+locatieId+'&select=id',{headers:hdrs(token)});
+  const rows=await existing.json();
+  let r;
+  if(rows.length>0){
+    r=await fetch(SB_URL+'/rest/v1/wijn_locaties?id=eq.'+rows[0].id,{
+      method:'PATCH',
+      headers:{...hdrs(token),'Prefer':'return=representation'},
+      body:JSON.stringify({voorraad})
+    });
+  }else{
+    r=await fetch(SB_URL+'/rest/v1/wijn_locaties',{
+      method:'POST',
+      headers:{...hdrs(token),'Prefer':'return=representation'},
+      body:JSON.stringify({wijn_id:wijnId,locatie_id:locatieId,voorraad,user_id:currentUser.id})
+    });
+  }
   if(!r.ok)throw new Error(await r.text());
   return r.json();
 }
