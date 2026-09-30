@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<title>Wijnbibliotheek</title>
+<title>Wijnbieb</title>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <style>
 :root{
@@ -327,7 +327,7 @@ main{padding-bottom:calc(var(--tabbar-h) + env(safe-area-inset-bottom,0px) + 16p
 <!-- LOGIN SCREEN -->
 <div id="loginScreen">
   <div class="login-logo">🍷</div>
-  <div class="login-title">Wijnbibliotheek</div>
+  <div class="login-title">Wijnbieb</div>
   <div class="login-sub">Jouw persoonlijke wijnkelder</div>
   <div class="login-card">
     <h2 id="loginHeading">Inloggen</h2>
@@ -357,7 +357,7 @@ main{padding-bottom:calc(var(--tabbar-h) + env(safe-area-inset-bottom,0px) + 16p
 <header>
   <div class="h-inner">
     <div>
-      <div class="h-title">🍷 Wijnbibliotheek</div>
+      <div class="h-title">🍷 Wijnbieb</div>
       <div class="h-sub" id="hSub">Laden…</div>
     </div>
     <div class="h-user">
@@ -546,13 +546,13 @@ main{padding-bottom:calc(var(--tabbar-h) + env(safe-area-inset-bottom,0px) + 16p
     <div class="handleiding-wrap">
       <div class="handleiding-header">
         <div style="font-size:48px;margin-bottom:8px">🍷</div>
-        <div class="handleiding-title">Wijnbibliotheek</div>
-        <div class="handleiding-sub">Gebruikershandleiding · v1.67-multi</div>
+        <div class="handleiding-title">Wijnbieb</div>
+        <div class="handleiding-sub">Gebruikershandleiding · v2.0-multi</div>
       </div>
 
       <div class="h-section">
-        <div class="h-section-title">1. Wat is de Wijnbibliotheek?</div>
-        <p>De Wijnbibliotheek is een mobiele web-app waarmee je je wijncollectie beheert. Je kunt wijnen toevoegen door een etiket te scannen of handmatig in te voeren, voorraad bijhouden op meerdere locaties, en een drinkvenster instellen. Elke gebruiker heeft een eigen account en ziet alleen eigen wijnen.</p>
+        <div class="h-section-title">1. Wat is Wijnbieb?</div>
+        <p>Wijnbieb is een mobiele web-app waarmee je je wijncollectie beheert. Je kunt wijnen toevoegen door een etiket te scannen of handmatig in te voeren, voorraad bijhouden op meerdere locaties, en een drinkvenster instellen. Elke gebruiker heeft een eigen account en ziet alleen eigen wijnen.</p>
       </div>
 
       <div class="h-section">
@@ -627,7 +627,7 @@ main{padding-bottom:calc(var(--tabbar-h) + env(safe-area-inset-bottom,0px) + 16p
         <div class="h-drink"><span class="h-drink-dot" style="background:#9A8E88"></span><strong>Voorbij</strong> — Voorbij het optimale drinkvenster.</div>
       </div>
 
-      <div class="handleiding-footer">Wijnbibliotheek v1.67-multi — Veel plezier met je collectie! 🥂</div>
+      <div class="handleiding-footer">Wijnbieb v2.0-multi — Veel plezier met je collectie! 🥂</div>
     </div>
   </div>
 </main>
@@ -734,7 +734,7 @@ main{padding-bottom:calc(var(--tabbar-h) + env(safe-area-inset-bottom,0px) + 16p
 </nav>
 
 <div id="toast"></div>
-<div id="version">v1.67-multi</div>
+<div id="version">v2.0-multi</div>
 
 <script>
 /* ── CONFIG ── */
@@ -1631,7 +1631,7 @@ async function shareWine(){
     (wijnLocaties[w.id]||[]).filter(x=>x.voorraad>0).map(x=>`📍 ${x.naam}${x.positie?' ('+x.positie+')':''}: ${x.voorraad} fles${x.voorraad!==1?'sen':''}`).join(', ')||'',
     `Beoordeling: ${stars}`,'',
     w.notities?`Smaakervaring & bewaren:\n${w.notities}`:'','',
-    '— Gedeeld via Wijnbibliotheek 🍷',
+    '— Gedeeld via Wijnbieb 🍷',
   ].filter(l=>l!==undefined&&(l===''||l.length>0));
   const text=lines.join('\n').replace(/\n{3,}/g,'\n\n').trim();
   const title=`${w.naam}${w.jaar?' '+w.jaar:''}`;
