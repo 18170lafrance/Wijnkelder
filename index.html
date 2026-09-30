@@ -652,7 +652,7 @@ main{padding-bottom:calc(var(--tabbar-h) + env(safe-area-inset-bottom,0px) + 16p
     <div class="type-loading" id="pTypeLoading"><div class="spinner" style="width:20px;height:20px;margin:0 auto 4px"></div>Nieuwe wijninfo ophalen…</div>
     <div class="panel-field"><label>Prijs (€)</label><input type="number" id="pPrice" step="0.01" min="0"></div>
     <div class="panel-field">
-      <label>Voorraad per locatie</label>
+      <label>Locaties &amp; voorraad</label>
       <div class="loc-stock-list" id="panelLocList"></div>
     </div>
     <div class="panel-grid">
@@ -896,10 +896,13 @@ async function sbGetAlleWijnLocaties(){
 }
 async function sbUpsertWijnLocatie(wijnId,locatieId,voorraad){
   const token=await getToken();
-  const existing=await fetch(SB_URL+'/rest/v1/wijn_locaties?wijn_id=eq.'+wijnId+'&locatie_id=eq.'+locatieId+'&select=id',{headers:hdrs(token)});
-  const rows=await existing.json();
+  let rows=[];
+  try{
+    const existing=await fetch(SB_URL+'/rest/v1/wijn_locaties?wijn_id=eq.'+wijnId+'&locatie_id=eq.'+locatieId+'&select=id',{headers:hdrs(token)});
+    if(existing.ok) rows=await existing.json();
+  }catch(e){}
   let r;
-  if(rows.length>0){
+  if(Array.isArray(rows)&&rows.length>0){
     r=await fetch(SB_URL+'/rest/v1/wijn_locaties?id=eq.'+rows[0].id,{
       method:'PATCH',
       headers:{...hdrs(token),'Prefer':'return=representation'},
@@ -914,6 +917,11 @@ async function sbUpsertWijnLocatie(wijnId,locatieId,voorraad){
   }
   if(!r.ok)throw new Error(await r.text());
   return r.json();
+}
+async function sbDeleteWijnLocatie(wijnId,locatieId){
+  const token=await getToken();
+  const r=await fetch(SB_URL+'/rest/v1/wijn_locaties?wijn_id=eq.'+wijnId+'&locatie_id=eq.'+locatieId,{method:'DELETE',headers:hdrs(token)});
+  if(!r.ok)throw new Error(await r.text());
 }
 
 /* ── UITNODIGINGEN ── */
@@ -1153,12 +1161,61 @@ function renderLocatieBeheer(){
   }).join('');
 }
 
+async function addLocatieToWine(wijnId){
+  const sel=document.getElementById('panelLocAdd');if(!sel)return;
+  const locatieId=sel.value;if(!locatieId)return;
+  const w=wines.find(x=>x.id===wijnId);if(!w)return;
+  const loc=locaties.find(l=>l.id===locatieId);if(!loc)return;
+  if(!wijnLocaties[wijnId]) wijnLocaties[wijnId]=[];
+  if(wijnLocaties[wijnId].find(x=>x.locatie_id===locatieId)){toast('Locatie al toegevoegd');sel.value='';return;}
+  const wl={locatie_id:locatieId,naam:loc.naam,voorraad:1,positie:''};
+  wijnLocaties[wijnId].push(wl);
+  const totaal=wijnLocaties[wijnId].reduce((s,x)=>s+x.voorraad,0);
+  w.voorraad=totaal;
+  sel.value='';
+  renderPanelLocaties(wijnId);renderLib();
+  if(document.getElementById('view-stock').classList.contains('active')) renderStock();
+  try{
+    await sbUpsertWijnLocatie(wijnId,locatieId,1);
+    await sbPatch(wijnId,{voorraad:totaal});
+    toast('Locatie "'+loc.naam+'" toegevoegd met 1 fles');
+  }catch(e){
+    wijnLocaties[wijnId]=wijnLocaties[wijnId].filter(x=>x.locatie_id!==locatieId);
+    w.voorraad=w.voorraad-1;
+    renderPanelLocaties(wijnId);renderLib();
+    toast('Opslaan mislukt');
+  }
+}
+
+async function removeLocatieFromWine(wijnId,locatieId){
+  const w=wines.find(x=>x.id===wijnId);if(!w)return;
+  if(!wijnLocaties[wijnId])return;
+  const wl=wijnLocaties[wijnId].find(x=>x.locatie_id===locatieId);if(!wl)return;
+  if(wl.voorraad>0&&!confirm('Er staan nog '+wl.voorraad+' fles'+(wl.voorraad!==1?'sen':'')+' op deze locatie. Locatie verwijderen?'))return;
+  const oudVoorraad=wl.voorraad;
+  wijnLocaties[wijnId]=wijnLocaties[wijnId].filter(x=>x.locatie_id!==locatieId);
+  const totaal=wijnLocaties[wijnId].reduce((s,x)=>s+x.voorraad,0);
+  w.voorraad=totaal;
+  if(w.kaart_locatie_id===locatieId) w.kaart_locatie_id=null;
+  renderPanelLocaties(wijnId);renderLib();
+  if(document.getElementById('view-stock').classList.contains('active')) renderStock();
+  try{
+    await sbDeleteWijnLocatie(wijnId,locatieId);
+    await sbPatch(wijnId,{voorraad:totaal,kaart_locatie_id:w.kaart_locatie_id});
+    toast('Locatie verwijderd');
+  }catch(e){
+    wijnLocaties[wijnId].push(wl);
+    w.voorraad=w.voorraad+oudVoorraad;
+    renderPanelLocaties(wijnId);renderLib();
+    toast('Verwijderen mislukt');
+  }
+}
+
 async function adjStockLocatie(wijnId,locatieId,delta){
   const w=wines.find(x=>x.id===wijnId);if(!w)return;
   if(!wijnLocaties[wijnId]) wijnLocaties[wijnId]=[];
   let wl=wijnLocaties[wijnId].find(x=>x.locatie_id===locatieId);
-  const loc=locaties.find(l=>l.id===locatieId);
-  if(!wl){wl={locatie_id:locatieId,naam:loc?.naam||'',voorraad:0,positie:''};wijnLocaties[wijnId].push(wl);}
+  if(!wl)return;
   if(delta<0&&wl.voorraad<=0){toast('Geen flessen op deze locatie');return;}
   const nieuw=Math.max(0,wl.voorraad+delta);
   const oud=wl.voorraad;
@@ -1200,33 +1257,53 @@ function renderPanelLocaties(wijnId){
   const wls=wijnLocaties[wijnId]||[];
   const w=wines.find(x=>x.id===wijnId);
   const kaartLocId=w?w.kaart_locatie_id||'':'';
-  el.innerHTML=locaties.map(loc=>{
-    const wl=wls.find(x=>x.locatie_id===loc.id)||{voorraad:0,positie:''};
-    const n=wl.voorraad||0;
-    const isKaart=kaartLocId===loc.id;
-    return`<div class="loc-stock-row" id="locrow-${loc.id}">
-      <span class="loc-stock-icon">📍</span>
-      <div style="flex:1;min-width:0">
-        <div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap">
-          <span class="loc-stock-name">${esc(loc.naam)}</span>
-          <button class="loc-stock-btn drk" onclick="adjStockLocatie('${wijnId}','${loc.id}',-1)" ${n<=0?'disabled':''}>−</button>
-          <span class="loc-stock-num">${n}</span>
-          <button class="loc-stock-btn add" onclick="adjStockLocatie('${wijnId}','${loc.id}',1)">+</button>
-          <button onclick="setKaartLocatie('${wijnId}','${loc.id}')"
-            style="margin-left:auto;padding:3px 8px;border-radius:6px;font-size:11px;cursor:pointer;border:1px solid ${isKaart?'var(--claret)':'var(--border)'};background:${isKaart?'var(--claret)':'var(--card)'};color:${isKaart?'#fff':'var(--muted)'};white-space:nowrap"
-            title="Toon deze locatie op de wijnkaart">
-            ${isKaart?'✓ Op kaart':'Op kaart'}
-          </button>
+  const assigned=wls.filter(wl=>locaties.find(l=>l.id===wl.locatie_id));
+  const beschikbaar=locaties.filter(l=>!wls.find(wl=>wl.locatie_id===l.id));
+  let html='';
+  if(assigned.length){
+    html+=assigned.map(wl=>{
+      const loc=locaties.find(l=>l.id===wl.locatie_id);if(!loc)return'';
+      const n=wl.voorraad||0;
+      const isKaart=kaartLocId===loc.id;
+      return`<div class="loc-stock-row" id="locrow-${loc.id}">
+        <span class="loc-stock-icon">📍</span>
+        <div style="flex:1;min-width:0">
+          <div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap">
+            <span class="loc-stock-name">${esc(loc.naam)}</span>
+            <button class="loc-stock-btn drk" onclick="adjStockLocatie('${wijnId}','${loc.id}',-1)" ${n<=0?'disabled':''}>−</button>
+            <span class="loc-stock-num">${n}</span>
+            <button class="loc-stock-btn add" onclick="adjStockLocatie('${wijnId}','${loc.id}',1)">+</button>
+            <button onclick="setKaartLocatie('${wijnId}','${loc.id}')"
+              style="margin-left:auto;padding:3px 8px;border-radius:6px;font-size:11px;cursor:pointer;border:1px solid ${isKaart?'var(--claret)':'var(--border)'};background:${isKaart?'var(--claret)':'var(--card)'};color:${isKaart?'#fff':'var(--muted)'};white-space:nowrap"
+              title="Toon deze locatie op de wijnkaart">
+              ${isKaart?'✓ Op kaart':'Op kaart'}
+            </button>
+            <button onclick="removeLocatieFromWine('${wijnId}','${loc.id}')"
+              style="padding:3px 6px;border-radius:6px;font-size:13px;cursor:pointer;border:1px solid var(--border);background:var(--card);color:var(--danger)"
+              title="Locatie verwijderen van deze wijn">✕</button>
+          </div>
+          <input type="text"
+            style="margin-top:5px;width:100%;font-size:12px;padding:4px 8px;border:1px solid var(--border);border-radius:6px;background:var(--cream);color:var(--muted)"
+            placeholder="Positie: Rek A, Rij 2 (optioneel)"
+            value="${esc(wl.positie||'')}"
+            onchange="savePanelPositie('${wijnId}','${loc.id}',this.value)"
+            onblur="savePanelPositie('${wijnId}','${loc.id}',this.value)">
         </div>
-        <input type="text"
-          style="margin-top:5px;width:100%;font-size:12px;padding:4px 8px;border:1px solid var(--border);border-radius:6px;background:var(--cream);color:var(--muted)"
-          placeholder="Positie: Rek A, Rij 2 (optioneel)"
-          value="${esc(wl.positie||'')}"
-          onchange="savePanelPositie('${wijnId}','${loc.id}',this.value)"
-          onblur="savePanelPositie('${wijnId}','${loc.id}',this.value)">
-      </div>
+      </div>`;
+    }).join('');
+  }else{
+    html+=`<div style="font-size:13px;color:var(--muted);padding:6px 0">Nog geen locatie gekoppeld aan deze wijn.</div>`;
+  }
+  if(beschikbaar.length){
+    html+=`<div style="display:flex;gap:8px;align-items:center;margin-top:8px">
+      <select id="panelLocAdd" style="flex:1;padding:8px 10px;border:1.5px solid var(--border);border-radius:8px;font-size:13px;color:var(--ink);background:var(--cream)">
+        <option value="">+ Locatie toevoegen…</option>
+        ${beschikbaar.map(l=>`<option value="${l.id}">${esc(l.naam)}</option>`).join('')}
+      </select>
+      <button onclick="addLocatieToWine('${wijnId}')" style="padding:8px 14px;border-radius:8px;border:none;background:var(--claret);color:#fff;font-size:13px;cursor:pointer;white-space:nowrap">Toevoegen</button>
     </div>`;
-  }).join('');
+  }
+  el.innerHTML=html;
 }
 
 /* ── DRINKVENSTER ── */
