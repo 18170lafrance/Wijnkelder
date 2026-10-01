@@ -249,6 +249,20 @@ main{padding-bottom:calc(var(--tabbar-h) + env(safe-area-inset-bottom,0px) + 16p
 .loc-stock-btn.drk{border-color:var(--claret);color:var(--claret);}
 .loc-stock-btn:disabled{opacity:.3;pointer-events:none;}
 
+/* LOCATIE PICKER POPUP */
+.loc-picker-overlay{position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:200;display:flex;align-items:center;justify-content:center;padding:24px;opacity:0;pointer-events:none;transition:opacity .2s;}
+.loc-picker-overlay.open{opacity:1;pointer-events:auto;}
+.loc-picker{background:var(--card);border-radius:14px;width:100%;max-width:340px;overflow:hidden;box-shadow:0 8px 32px rgba(0,0,0,.2);}
+.loc-picker-head{padding:14px 16px;border-bottom:1px solid var(--border);font-weight:600;font-size:15px;}
+.loc-picker-list{max-height:300px;overflow-y:auto;}
+.loc-picker-item{display:flex;align-items:center;gap:10px;padding:12px 16px;cursor:pointer;border-bottom:1px solid var(--border);transition:background .1s;}
+.loc-picker-item:last-child{border-bottom:none;}
+.loc-picker-item:active{background:var(--warm);}
+.loc-picker-item .lpi-icon{font-size:18px;flex-shrink:0;}
+.loc-picker-item .lpi-name{flex:1;font-size:14px;font-weight:500;}
+.loc-picker-item .lpi-count{font-size:13px;color:var(--muted);}
+.loc-picker-cancel{width:100%;padding:12px;border:none;background:var(--warm);color:var(--muted);font-size:14px;cursor:pointer;}
+
 /* LOCATIEBEHEER */
 .loc-mgr{background:var(--card);border:1px solid var(--border);border-radius:var(--r);overflow:hidden;margin-bottom:20px;}
 .loc-mgr-head{padding:12px 14px;background:var(--warm);font-size:13px;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:.06em;display:flex;align-items:center;justify-content:space-between;}
@@ -558,7 +572,7 @@ main{padding-bottom:calc(var(--tabbar-h) + env(safe-area-inset-bottom,0px) + 16p
       <div class="handleiding-header">
         <div style="font-size:48px;margin-bottom:8px">🍷</div>
         <div class="handleiding-title">Wijnbieb</div>
-        <div class="handleiding-sub">Gebruikershandleiding · v2.01-multi</div>
+        <div class="handleiding-sub">Gebruikershandleiding · v2.02-multi</div>
       </div>
 
       <div class="h-section">
@@ -638,7 +652,7 @@ main{padding-bottom:calc(var(--tabbar-h) + env(safe-area-inset-bottom,0px) + 16p
         <div class="h-drink"><span class="h-drink-dot" style="background:#9A8E88"></span><strong>Voorbij</strong> — Voorbij het optimale drinkvenster.</div>
       </div>
 
-      <div class="handleiding-footer">Wijnbieb v2.01-multi — Veel plezier met je collectie! 🥂</div>
+      <div class="handleiding-footer">Wijnbieb v2.02-multi — Veel plezier met je collectie! 🥂</div>
     </div>
   </div>
 </main>
@@ -744,8 +758,15 @@ main{padding-bottom:calc(var(--tabbar-h) + env(safe-area-inset-bottom,0px) + 16p
   <button class="tab" id="tab-admin" onclick="switchTab('admin')" style="display:none"><span class="ti">⚙️</span>Beheer</button>
 </nav>
 
+<div class="loc-picker-overlay" id="locPickerOverlay" onclick="if(event.target===this)closeLocPicker()">
+  <div class="loc-picker">
+    <div class="loc-picker-head" id="locPickerHead">Kies locatie</div>
+    <div class="loc-picker-list" id="locPickerList"></div>
+    <button class="loc-picker-cancel" onclick="closeLocPicker()">Annuleren</button>
+  </div>
+</div>
 <div id="toast"></div>
-<div id="version">v2.01-multi</div>
+<div id="version">v2.02-multi</div>
 
 <script>
 /* ── CONFIG ── */
@@ -1589,12 +1610,58 @@ function esc(s){return(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace
 async function adjStock(id,d){
   const w=wines.find(x=>x.id===id);if(!w)return;
   if(d<0&&!(w.voorraad||0)){toast('Geen flessen meer op voorraad');return;}
+  const wls=(wijnLocaties[id]||[]).filter(wl=>locaties.find(l=>l.id===wl.locatie_id));
+  const metVoorraad=wls.filter(wl=>wl.voorraad>0);
+  if(d<0&&metVoorraad.length>1){showLocPicker(id,d,metVoorraad);return;}
+  if(d>0&&wls.length>1){showLocPicker(id,d,wls);return;}
+  const autoLoc=(d<0&&metVoorraad.length===1)?metVoorraad[0]:(d>0&&wls.length===1)?wls[0]:null;
+  await doAdjStock(id,d,autoLoc?autoLoc.locatie_id:null);
+}
+function showLocPicker(wijnId,delta,locs){
+  document.getElementById('locPickerHead').textContent=delta>0?'Fles toevoegen aan…':'Drinken van…';
+  document.getElementById('locPickerList').innerHTML=locs.map(wl=>{
+    const loc=locaties.find(l=>l.id===wl.locatie_id);
+    return `<div class="loc-picker-item" onclick="pickLoc('${wijnId}',${delta},'${wl.locatie_id}')">
+      <span class="lpi-icon">📍</span>
+      <span class="lpi-name">${esc(loc?loc.naam:'?')}</span>
+      <span class="lpi-count">${wl.voorraad} fles${wl.voorraad!==1?'sen':''}</span>
+    </div>`;
+  }).join('');
+  document.getElementById('locPickerOverlay').classList.add('open');
+}
+function closeLocPicker(){document.getElementById('locPickerOverlay').classList.remove('open');}
+async function pickLoc(wijnId,delta,locatieId){closeLocPicker();await doAdjStock(wijnId,delta,locatieId);}
+async function doAdjStock(id,d,locatieId){
+  const w=wines.find(x=>x.id===id);if(!w)return;
   const nv=Math.max(0,(w.voorraad||0)+d);
-  const old=w.voorraad;w.voorraad=nv;
+  const old=w.voorraad;
+  w.voorraad=nv;
+  let oldLocVoorraad=null;
+  if(locatieId&&wijnLocaties[id]){
+    const wl=wijnLocaties[id].find(x=>x.locatie_id===locatieId);
+    if(wl){oldLocVoorraad=wl.voorraad;wl.voorraad=Math.max(0,wl.voorraad+d);}
+  }
   renderLib();refreshSubviewIfOpen();
   if(document.getElementById('view-stock').classList.contains('active'))renderStock();
-  try{await sbPatch(id,{voorraad:nv});toast(d>0?'+1 fles toegevoegd':'Genoten van '+w.naam+' 🍷');}
-  catch(e){w.voorraad=old;renderLib();toast('Opslaan mislukt');}
+  if(panelWineId===id)renderPanelLocaties(id);
+  try{
+    if(locatieId&&wijnLocaties[id]){
+      const wl=wijnLocaties[id].find(x=>x.locatie_id===locatieId);
+      if(wl) await sbUpsertWijnLocatie(id,locatieId,wl.voorraad);
+    }
+    await sbPatch(id,{voorraad:nv});
+    const locNaam=locatieId?locaties.find(l=>l.id===locatieId)?.naam:'';
+    toast(d>0?'+1 fles'+(locNaam?' op '+locNaam:''):'Genoten van '+w.naam+(locNaam?' (van '+locNaam+')':'')+' 🍷');
+  }catch(e){
+    w.voorraad=old;
+    if(locatieId&&wijnLocaties[id]&&oldLocVoorraad!==null){
+      const wl=wijnLocaties[id].find(x=>x.locatie_id===locatieId);
+      if(wl) wl.voorraad=oldLocVoorraad;
+    }
+    renderLib();refreshSubviewIfOpen();
+    if(panelWineId===id)renderPanelLocaties(id);
+    toast('Opslaan mislukt');
+  }
 }
 
 /* ── DUPLICAAT DETECTIE ── */
