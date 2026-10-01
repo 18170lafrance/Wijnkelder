@@ -452,7 +452,7 @@ main{padding-bottom:calc(var(--tabbar-h) + env(safe-area-inset-bottom,0px) + 16p
   <!-- SCAN -->
   <div class="view" id="view-scan">
     <div class="scan-wrap">
-      <div class="scan-zone" id="scanZone" onclick="triggerFileInput()">
+      <div class="scan-zone" id="scanZone" onclick="if(!scanImages.length)triggerFileInput()">
         <div class="scan-corner tl"></div><div class="scan-corner tr"></div>
         <div class="scan-corner bl"></div><div class="scan-corner br"></div>
         <img id="scanPreview" alt="Etiket" style="display:none">
@@ -464,7 +464,7 @@ main{padding-bottom:calc(var(--tabbar-h) + env(safe-area-inset-bottom,0px) + 16p
         </div>
         <div class="scan-thumbs" id="scanThumbs" style="display:none"></div>
       </div>
-      <input type="file" id="fileInput" accept="image/*" capture="environment" onchange="handleImage(event)">
+      <div id="fileInputWrap" style="position:absolute;width:0;height:0;overflow:hidden"></div>
       <button class="btn-primary scan-analyze-btn" id="scanAnalyzeBtn" style="display:none" onclick="analyzeImages()">🔍 Analyseer etiket(ten)</button>
       <div class="scan-loading" id="scanLoading">
         <div class="spinner"></div>
@@ -1928,19 +1928,26 @@ function refreshSubviewIfOpen(){const sv=document.getElementById('subview');if(!
 let scanImages=[];
 const SCAN_LABELS=['Voorkant','Achterkant','Extra 1','Extra 2','Extra 3'];
 
-function triggerFileInput(){
+function triggerFileInput(ev){
+  if(ev) ev.stopPropagation();
   if(scanImages.length>=5){toast('Maximaal 5 foto\'s');return;}
-  document.getElementById('fileInput').click();
+  const wrap=document.getElementById('fileInputWrap');
+  wrap.innerHTML='';
+  const inp=document.createElement('input');
+  inp.type='file';inp.accept='image/*';inp.capture='environment';
+  inp.style.cssText='position:absolute;width:0;height:0;opacity:0';
+  inp.addEventListener('change',handleImage);
+  wrap.appendChild(inp);
+  inp.click();
 }
 
 async function handleImage(e){
-  const file=e.target.files[0];if(!file)return;
+  const file=e.target.files&&e.target.files[0];if(!file)return;
   if(scanImages.length>=5){toast('Maximaal 5 foto\'s');return;}
   let encoded;
   try{encoded=await resizeAndEncode(file,1600);}catch(err){toast('Afbeelding kon niet worden geladen');return;}
   const thumbUrl='data:'+encoded.mimeType+';base64,'+encoded.b64;
   scanImages.push({b64:encoded.b64,mimeType:encoded.mimeType,thumbUrl,label:SCAN_LABELS[scanImages.length]||'Extra'});
-  document.getElementById('fileInput').value='';
   renderScanThumbs();
 }
 
@@ -1961,7 +1968,8 @@ function renderScanThumbs(){
     ct.appendChild(d);
   });
   if(scanImages.length<5){
-    const add=document.createElement('div');add.className='scan-add-btn';add.onclick=triggerFileInput;
+    const add=document.createElement('div');add.className='scan-add-btn';
+    add.onclick=function(ev){triggerFileInput(ev);};
     add.innerHTML='<span>+</span><small>Foto</small>';
     ct.appendChild(add);
   }
@@ -2044,7 +2052,7 @@ function clearForm(){
   const feb=document.getElementById('fNotesEdit');if(feb)feb.style.display='none';
 }
 function resetScan(){
-  document.getElementById('fileInput').value='';
+  document.getElementById('fileInputWrap').innerHTML='';
   scanImages=[];
   const ct=document.getElementById('scanThumbs');ct.innerHTML='';ct.style.display='none';
   document.getElementById('scanPreview').style.display='none';
