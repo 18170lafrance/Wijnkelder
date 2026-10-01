@@ -1938,10 +1938,10 @@ async function handleImage(e){
   if(scanImages.length>=5){toast('Maximaal 5 foto\'s');return;}
   let encoded;
   try{encoded=await resizeAndEncode(file,1600);}catch(err){toast('Afbeelding kon niet worden geladen');return;}
-  const thumbUrl=URL.createObjectURL(file);
+  const thumbUrl='data:'+encoded.mimeType+';base64,'+encoded.b64;
   scanImages.push({b64:encoded.b64,mimeType:encoded.mimeType,thumbUrl,label:SCAN_LABELS[scanImages.length]||'Extra'});
-  renderScanThumbs();
   document.getElementById('fileInput').value='';
+  renderScanThumbs();
 }
 
 function renderScanThumbs(){
@@ -1968,7 +1968,6 @@ function renderScanThumbs(){
 }
 
 function removeScanImage(i){
-  if(scanImages[i]?.thumbUrl) URL.revokeObjectURL(scanImages[i].thumbUrl);
   scanImages.splice(i,1);
   scanImages.forEach((img,j)=>{img.label=SCAN_LABELS[j]||'Extra';});
   renderScanThumbs();
@@ -2046,7 +2045,6 @@ function clearForm(){
 }
 function resetScan(){
   document.getElementById('fileInput').value='';
-  scanImages.forEach(img=>{if(img.thumbUrl)URL.revokeObjectURL(img.thumbUrl);});
   scanImages=[];
   const ct=document.getElementById('scanThumbs');ct.innerHTML='';ct.style.display='none';
   document.getElementById('scanPreview').style.display='none';
