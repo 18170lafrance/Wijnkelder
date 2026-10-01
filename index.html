@@ -169,6 +169,16 @@ main{padding-bottom:calc(var(--tabbar-h) + env(safe-area-inset-bottom,0px) + 16p
 .scan-corner.br{bottom:10px;right:10px;border-width:0 3px 3px 0;}
 #scanPreview{width:100%;max-height:240px;object-fit:cover;display:none;}
 #fileInput{display:none;}
+.scan-thumbs{display:flex;gap:8px;flex-wrap:wrap;padding:10px;align-items:center;}
+.scan-thumb{position:relative;width:72px;height:72px;border-radius:8px;overflow:hidden;border:2px solid var(--border);flex-shrink:0;}
+.scan-thumb img{width:100%;height:100%;object-fit:cover;}
+.scan-thumb .scan-thumb-del{position:absolute;top:2px;right:2px;width:20px;height:20px;background:rgba(0,0,0,.6);color:#fff;border:none;border-radius:50%;font-size:12px;line-height:20px;text-align:center;cursor:pointer;padding:0;}
+.scan-thumb-label{position:absolute;bottom:0;left:0;right:0;background:rgba(0,0,0,.55);color:#fff;font-size:9px;text-align:center;padding:1px 0;}
+.scan-add-btn{width:72px;height:72px;border-radius:8px;border:2px dashed var(--border);background:var(--card);display:flex;align-items:center;justify-content:center;flex-direction:column;cursor:pointer;flex-shrink:0;transition:border-color .2s;}
+.scan-add-btn:hover{border-color:var(--gold);}
+.scan-add-btn span{font-size:24px;line-height:1;}
+.scan-add-btn small{font-size:9px;color:var(--muted);margin-top:2px;}
+.scan-analyze-btn{margin:0 10px 10px;width:calc(100% - 20px);}
 .scan-loading{text-align:center;padding:28px 0;display:none;}
 .spinner{width:36px;height:36px;margin:0 auto 12px;border:3px solid var(--border);border-top-color:var(--claret);border-radius:50%;animation:spin .75s linear infinite;}
 @keyframes spin{to{transform:rotate(360deg);}}
@@ -442,17 +452,20 @@ main{padding-bottom:calc(var(--tabbar-h) + env(safe-area-inset-bottom,0px) + 16p
   <!-- SCAN -->
   <div class="view" id="view-scan">
     <div class="scan-wrap">
-      <div class="scan-zone" id="scanZone" onclick="document.getElementById('fileInput').click()">
+      <div class="scan-zone" id="scanZone" onclick="triggerFileInput()">
         <div class="scan-corner tl"></div><div class="scan-corner tr"></div>
         <div class="scan-corner bl"></div><div class="scan-corner br"></div>
-        <img id="scanPreview" alt="Etiket">
+        <img id="scanPreview" alt="Etiket" style="display:none">
         <div class="scan-ph" id="scanPh" style="padding:32px 20px">
           <div style="font-size:48px;margin-bottom:12px">📷</div>
           <div style="font-size:16px;font-weight:600">Richt op het wijnetiket</div>
           <div style="font-size:13px;color:var(--muted);margin-top:6px">Tik hier om een foto te maken<br>of een afbeelding te uploaden</div>
+          <div style="font-size:11px;color:var(--muted);margin-top:4px">Je kunt meerdere foto's toevoegen (voor- en achterkant)</div>
         </div>
+        <div class="scan-thumbs" id="scanThumbs" style="display:none"></div>
       </div>
       <input type="file" id="fileInput" accept="image/*" capture="environment" onchange="handleImage(event)">
+      <button class="btn-primary scan-analyze-btn" id="scanAnalyzeBtn" style="display:none" onclick="analyzeImages()">🔍 Analyseer etiket(ten)</button>
       <div class="scan-loading" id="scanLoading">
         <div class="spinner"></div>
         <p id="scanModelTxt">Etiket analyseren…</p>
@@ -572,7 +585,7 @@ main{padding-bottom:calc(var(--tabbar-h) + env(safe-area-inset-bottom,0px) + 16p
       <div class="handleiding-header">
         <div style="font-size:48px;margin-bottom:8px">🍷</div>
         <div class="handleiding-title">Wijnbieb</div>
-        <div class="handleiding-sub">Gebruikershandleiding · v2.02-multi</div>
+        <div class="handleiding-sub">Gebruikershandleiding · v2.03-multi</div>
       </div>
 
       <div class="h-section">
@@ -652,7 +665,7 @@ main{padding-bottom:calc(var(--tabbar-h) + env(safe-area-inset-bottom,0px) + 16p
         <div class="h-drink"><span class="h-drink-dot" style="background:#9A8E88"></span><strong>Voorbij</strong> — Voorbij het optimale drinkvenster.</div>
       </div>
 
-      <div class="handleiding-footer">Wijnbieb v2.02-multi — Veel plezier met je collectie! 🥂</div>
+      <div class="handleiding-footer">Wijnbieb v2.03-multi — Veel plezier met je collectie! 🥂</div>
     </div>
   </div>
 </main>
@@ -766,7 +779,7 @@ main{padding-bottom:calc(var(--tabbar-h) + env(safe-area-inset-bottom,0px) + 16p
   </div>
 </div>
 <div id="toast"></div>
-<div id="version">v2.02-multi</div>
+<div id="version">v2.03-multi</div>
 
 <script>
 /* ── CONFIG ── */
@@ -1909,35 +1922,88 @@ function closeSubview(){document.getElementById('subview').classList.remove('ope
 function refreshSubviewIfOpen(){const sv=document.getElementById('subview');if(!sv.classList.contains('open'))return;const key=sv.dataset.filterKey;const title=sv.dataset.filterTitle;if(key&&title) showSubview(key,title);}
 
 /* ── SCAN ── */
+let scanImages=[];
+const SCAN_LABELS=['Voorkant','Achterkant','Extra 1','Extra 2','Extra 3'];
+
+function triggerFileInput(){
+  if(scanImages.length>=5){toast('Maximaal 5 foto\'s');return;}
+  document.getElementById('fileInput').click();
+}
+
 async function handleImage(e){
   const file=e.target.files[0];if(!file)return;
-  const url=URL.createObjectURL(file);
-  const pv=document.getElementById('scanPreview');
-  pv.src=url;pv.style.display='block';
-  document.getElementById('scanPh').style.display='none';
+  if(scanImages.length>=5){toast('Maximaal 5 foto\'s');return;}
+  let encoded;
+  try{encoded=await resizeAndEncode(file,1600);}catch(err){toast('Afbeelding kon niet worden geladen');return;}
+  const thumbUrl=URL.createObjectURL(file);
+  scanImages.push({b64:encoded.b64,mimeType:encoded.mimeType,thumbUrl,label:SCAN_LABELS[scanImages.length]||'Extra'});
+  renderScanThumbs();
+  document.getElementById('fileInput').value='';
+}
+
+function renderScanThumbs(){
+  const ct=document.getElementById('scanThumbs');
+  const ph=document.getElementById('scanPh');
+  const btn=document.getElementById('scanAnalyzeBtn');
+  if(!scanImages.length){ct.style.display='none';ph.style.display='flex';btn.style.display='none';return;}
+  ph.style.display='none';ct.style.display='flex';
+  btn.style.display='block';
+  document.getElementById('manualBtn').style.display='none';
+  ct.innerHTML='';
+  scanImages.forEach((img,i)=>{
+    const d=document.createElement('div');d.className='scan-thumb';
+    d.innerHTML='<img src="'+img.thumbUrl+'" alt="'+img.label+'">'
+      +'<button class="scan-thumb-del" onclick="removeScanImage('+i+')">&times;</button>'
+      +'<div class="scan-thumb-label">'+img.label+'</div>';
+    ct.appendChild(d);
+  });
+  if(scanImages.length<5){
+    const add=document.createElement('div');add.className='scan-add-btn';add.onclick=triggerFileInput;
+    add.innerHTML='<span>+</span><small>Foto</small>';
+    ct.appendChild(add);
+  }
+}
+
+function removeScanImage(i){
+  if(scanImages[i]?.thumbUrl) URL.revokeObjectURL(scanImages[i].thumbUrl);
+  scanImages.splice(i,1);
+  scanImages.forEach((img,j)=>{img.label=SCAN_LABELS[j]||'Extra';});
+  renderScanThumbs();
+  if(!scanImages.length){document.getElementById('manualBtn').style.display='block';}
+}
+
+async function analyzeImages(){
+  if(!scanImages.length){toast('Voeg eerst een foto toe');return;}
   document.getElementById('scanLoading').style.display='block';
   document.getElementById('scanForm').style.display='none';
-  document.getElementById('manualBtn').style.display='none';
-  let b64,mimeType;
-  try{const r=await resizeAndEncode(file,1600);b64=r.b64;mimeType=r.mimeType;}
-  catch(err){document.getElementById('scanLoading').style.display='none';document.getElementById('scanForm').style.display='block';toast('Afbeelding kon niet worden geladen');clearForm();return;}
-  const prompt=`Je bent een Master of Wine. Analyseer dit wijnetiket zorgvuldig.
+  document.getElementById('scanAnalyzeBtn').style.display='none';
+
+  const imgCount=scanImages.length;
+  const prompt=`Je bent een Master of Wine. Analyseer ${imgCount>1?'deze '+imgCount+' foto\'s van het wijnetiket':'dit wijnetiket'} zorgvuldig.${imgCount>1?' De foto\'s tonen verschillende kanten van dezelfde fles (voorkant, achterkant, etc.). Combineer alle informatie uit alle foto\'s.':''}
 Geef ALLEEN een JSON object terug. Geen uitleg, geen markdown, geen backticks.
 {"naam":"volledige wijnnaam","producent":"producent of domein","jaar":2021,"type":"red","druivenras":"ras of blend","regio":"appellation, land","prijs_schatting":14.99,"drink_van":2024,"drink_tot":2028,"notities":"Aroma: ...\\nSmaak: ...\\nAfdronk: ...\\nServeertemperatuur: ...\\nSpijscombinaties: ...\\nBewaren: aanbevelingen voor de kelder."}
 type is exact één van: red, white, rose, sparkling, dessert, port
-drink_van: het jaar vanaf wanneer de wijn op zijn best is
-drink_tot: het jaar tot wanneer de wijn op zijn best is
-Voor notities: schrijf elk onderdeel op een NIEUWE REGEL als "Onderwerp: omschrijving"
+drink_van: het jaar vanaf wanneer de wijn op zijn best is — geheel getal zoals 2024
+drink_tot: het jaar tot wanneer de wijn op zijn best is — geheel getal zoals 2028
+Voor notities: schrijf elk onderdeel op een NIEUWE REGEL als "Onderwerp: omschrijving" met exact deze onderwerpen: Aroma, Smaak, Afdronk, Serveertemperatuur, Spijscombinaties, Bewaren
 Gebruik null voor onbekende velden. Begin direct met {`;
-  document.getElementById('scanModelTxt').textContent='Etiket analyseren met AI…';
+
+  document.getElementById('scanModelTxt').textContent=imgCount>1?imgCount+' foto\'s analyseren met AI…':'Etiket analyseren met AI…';
+
+  const content=[];
+  scanImages.forEach(img=>{
+    content.push({type:'image',source:{type:'base64',media_type:img.mimeType,data:img.b64}});
+  });
+  content.push({type:'text',text:prompt});
+
   try{
-    const resp=await fetch(WORKER_URL,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({messages:[{role:'user',content:[{type:'image',source:{type:'base64',media_type:mimeType,data:b64}},{type:'text',text:prompt}]}]})});
-    if(!resp.ok){const et=await resp.text();let msg='Scan mislukt ('+resp.status+')';try{const ej=JSON.parse(et);if(ej.error?.message)msg=ej.error.message;}catch(e){}toast(msg);clearForm();document.getElementById('scanLoading').style.display='none';document.getElementById('scanForm').style.display='block';return;}
+    const resp=await fetch(WORKER_URL,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({messages:[{role:'user',content}]})});
+    if(!resp.ok){const et=await resp.text();let msg='Scan mislukt ('+resp.status+')';try{const ej=JSON.parse(et);if(ej.error?.message)msg=ej.error.message;}catch(e){}toast(msg);clearForm();document.getElementById('scanLoading').style.display='none';document.getElementById('scanForm').style.display='block';document.getElementById('scanAnalyzeBtn').style.display='block';return;}
     const data=await resp.json();
     const raw=(data.content?.[0]?.text||'').trim();
-    if(!raw){toast('Geen resultaat ontvangen');clearForm();document.getElementById('scanLoading').style.display='none';document.getElementById('scanForm').style.display='block';return;}
+    if(!raw){toast('Geen resultaat ontvangen');clearForm();document.getElementById('scanLoading').style.display='none';document.getElementById('scanForm').style.display='block';document.getElementById('scanAnalyzeBtn').style.display='block';return;}
     const s=raw.indexOf('{'),end=raw.lastIndexOf('}');
-    if(s===-1||end===-1){toast('Kon geen wijninfo vinden');clearForm();document.getElementById('scanLoading').style.display='none';document.getElementById('scanForm').style.display='block';return;}
+    if(s===-1||end===-1){toast('Kon geen wijninfo vinden');clearForm();document.getElementById('scanLoading').style.display='none';document.getElementById('scanForm').style.display='block';document.getElementById('scanAnalyzeBtn').style.display='block';return;}
     const wine=JSON.parse(raw.substring(s,end+1));
     document.getElementById('fName').value=wine.naam||'';
     document.getElementById('fProducer').value=wine.producent||'';
@@ -1952,8 +2018,8 @@ Gebruik null voor onbekende velden. Begin direct met {`;
     document.getElementById('fDrinkTot').value=wine.drink_tot||'';
     document.getElementById('fStock').value='1';
     const dupMsg=checkDuplicate(wine);
-    if(dupMsg)showDuplicateWarning(dupMsg);else toast('Etiket herkend ✓');
-  }catch(err){console.error(err);toast('Scan mislukt: '+err.message);clearForm();}
+    if(dupMsg)showDuplicateWarning(dupMsg);else toast(imgCount>1?imgCount+' foto\'s geanalyseerd ✓':'Etiket herkend ✓');
+  }catch(err){console.error(err);toast('Scan mislukt: '+err.message);clearForm();document.getElementById('scanAnalyzeBtn').style.display='block';}
   document.getElementById('scanLoading').style.display='none';
   document.getElementById('scanForm').style.display='block';
 }
@@ -1977,10 +2043,14 @@ function clearForm(){
 }
 function resetScan(){
   document.getElementById('fileInput').value='';
-  const pv=document.getElementById('scanPreview');pv.style.display='none';pv.src='';
+  scanImages.forEach(img=>{if(img.thumbUrl)URL.revokeObjectURL(img.thumbUrl);});
+  scanImages=[];
+  const ct=document.getElementById('scanThumbs');ct.innerHTML='';ct.style.display='none';
+  document.getElementById('scanPreview').style.display='none';
   document.getElementById('scanPh').style.display='flex';
   document.getElementById('scanLoading').style.display='none';
   document.getElementById('scanForm').style.display='none';
+  document.getElementById('scanAnalyzeBtn').style.display='none';
   document.getElementById('manualBtn').style.display='block';
   const dup=document.getElementById('dupWarning');if(dup)dup.remove();
   ['fTypeNotice','fTypeLoading'].forEach(id=>{const el=document.getElementById(id);if(el)el.style.display='none';});
@@ -1989,9 +2059,19 @@ function resetScan(){
 async function saveWine(){
   const naam=document.getElementById('fName').value.trim();
   if(!naam){toast('Vul een wijnnaam in');return;}
-  const pv=document.getElementById('scanPreview');let foto=null;
-  if(pv.src&&pv.style.display!=='none'){
-    try{const c=document.createElement('canvas');const s=120;let w=pv.naturalWidth,h=pv.naturalHeight;if(w>h){h=Math.round(h*s/w);w=s;}else{w=Math.round(w*s/h);h=s;}c.width=w;c.height=h;c.getContext('2d').drawImage(pv,0,0,w,h);foto=c.toDataURL('image/jpeg',.7);}catch(e){}
+  let foto=null;
+  if(scanImages.length){
+    try{
+      const img=new Image();
+      const p=new Promise((res,rej)=>{img.onload=res;img.onerror=rej;});
+      img.src='data:'+scanImages[0].mimeType+';base64,'+scanImages[0].b64;
+      await p;
+      const c=document.createElement('canvas');const s=120;
+      let w=img.naturalWidth,h=img.naturalHeight;
+      if(w>h){h=Math.round(h*s/w);w=s;}else{w=Math.round(w*s/h);h=s;}
+      c.width=w;c.height=h;c.getContext('2d').drawImage(img,0,0,w,h);
+      foto=c.toDataURL('image/jpeg',.7);
+    }catch(e){}
   }
   const payload={
     naam,producent:document.getElementById('fProducer').value.trim()||null,
