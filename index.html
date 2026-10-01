@@ -1190,9 +1190,24 @@ async function loadUserData(){
       if(loc) wijnLocaties[wl.wijn_id].push({locatie_id:wl.locatie_id,naam:loc.naam,voorraad:wl.voorraad||0,positie:wl.positie||''});
     });
   }catch(e){ wijnLocaties={}; }
+  await syncVoorraadMetLocaties();
   populateLocatieSelects();
   updateSubtitle();
   renderLib();
+}
+
+async function syncVoorraadMetLocaties(){
+  const patches=[];
+  wines.forEach(w=>{
+    const wls=wijnLocaties[w.id];
+    if(!wls||!wls.length) return;
+    const som=wls.reduce((s,wl)=>s+wl.voorraad,0);
+    if(w.voorraad!==som){
+      w.voorraad=som;
+      patches.push(sbPatch(w.id,{voorraad:som}));
+    }
+  });
+  if(patches.length) await Promise.all(patches).catch(()=>{});
 }
 
 sb.auth.onAuthStateChange(async(event,session)=>{
