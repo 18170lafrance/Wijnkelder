@@ -1182,6 +1182,21 @@ sb.auth.onAuthStateChange(async(event,session)=>{
   }
   if((event==='SIGNED_IN'||event==='TOKEN_REFRESHED'||event==='INITIAL_SESSION')&&session){
     if(authLoaded&&event==='TOKEN_REFRESHED') return;
+
+    const email=session.user.email||'';
+    const isAdmin=email===ADMIN_EMAIL;
+    if(!isAdmin){
+      const {data:inv,error:invErr}=await sb.from('uitnodigingen').select('email').eq('email',email).maybeSingle();
+      if(invErr||!inv){
+        console.warn('Toegang geweigerd voor:',email);
+        await sb.auth.signOut();
+        showLoginScreen();
+        const errEl=document.getElementById('loginErr');
+        if(errEl){errEl.textContent='Geen toegang — dit e-mailadres is niet uitgenodigd. Neem contact op met de beheerder.';errEl.style.display='block';}
+        return;
+      }
+    }
+
     authLoaded=true;
     hideLoginScreen();
     updateUserUI(session.user);
