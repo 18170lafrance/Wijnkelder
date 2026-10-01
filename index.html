@@ -1648,14 +1648,15 @@ function closeLocPicker(){document.getElementById('locPickerOverlay').classList.
 async function pickLoc(wijnId,delta,locatieId){closeLocPicker();await doAdjStock(wijnId,delta,locatieId);}
 async function doAdjStock(id,d,locatieId){
   const w=wines.find(x=>x.id===id);if(!w)return;
-  const nv=Math.max(0,(w.voorraad||0)+d);
   const old=w.voorraad;
-  w.voorraad=nv;
   let oldLocVoorraad=null;
   if(locatieId&&wijnLocaties[id]){
     const wl=wijnLocaties[id].find(x=>x.locatie_id===locatieId);
     if(wl){oldLocVoorraad=wl.voorraad;wl.voorraad=Math.max(0,wl.voorraad+d);}
   }
+  const wls=wijnLocaties[id]||[];
+  const nv=wls.length?wls.reduce((s,x)=>s+x.voorraad,0):Math.max(0,(w.voorraad||0)+d);
+  w.voorraad=nv;
   renderLib();refreshSubviewIfOpen();
   if(document.getElementById('view-stock').classList.contains('active'))renderStock();
   if(panelWineId===id)renderPanelLocaties(id);
@@ -1668,11 +1669,11 @@ async function doAdjStock(id,d,locatieId){
     const locNaam=locatieId?locaties.find(l=>l.id===locatieId)?.naam:'';
     toast(d>0?'+1 fles'+(locNaam?' op '+locNaam:''):'Genoten van '+w.naam+(locNaam?' (van '+locNaam+')':'')+' 🍷');
   }catch(e){
-    w.voorraad=old;
     if(locatieId&&wijnLocaties[id]&&oldLocVoorraad!==null){
       const wl=wijnLocaties[id].find(x=>x.locatie_id===locatieId);
       if(wl) wl.voorraad=oldLocVoorraad;
     }
+    w.voorraad=old;
     renderLib();refreshSubviewIfOpen();
     if(panelWineId===id)renderPanelLocaties(id);
     toast('Opslaan mislukt');
