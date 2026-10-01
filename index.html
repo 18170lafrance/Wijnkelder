@@ -1197,17 +1197,25 @@ async function loadUserData(){
 }
 
 async function syncVoorraadMetLocaties(){
-  const patches=[];
+  const saves=[];
   wines.forEach(w=>{
     const wls=wijnLocaties[w.id];
     if(!wls||!wls.length) return;
     const som=wls.reduce((s,wl)=>s+wl.voorraad,0);
-    if(w.voorraad!==som){
+    if(som===w.voorraad) return;
+    if(w.voorraad===0&&som>0){
+      wls.forEach(wl=>{
+        if(wl.voorraad>0){
+          wl.voorraad=0;
+          saves.push(sbUpsertWijnLocatie(w.id,wl.locatie_id,0));
+        }
+      });
+    } else if(w.voorraad>0){
       w.voorraad=som;
-      patches.push(sbPatch(w.id,{voorraad:som}));
+      saves.push(sbPatch(w.id,{voorraad:som}));
     }
   });
-  if(patches.length) await Promise.all(patches).catch(()=>{});
+  if(saves.length) await Promise.all(saves).catch(e=>console.error('Sync fout:',e));
 }
 
 sb.auth.onAuthStateChange(async(event,session)=>{
