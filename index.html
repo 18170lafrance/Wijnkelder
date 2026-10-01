@@ -1837,10 +1837,15 @@ async function deletePanelWine(){
   if(!panelWineId)return;
   if(!confirm('Wijn verwijderen?'))return;
   const id=panelWineId;closePanel();
+  const wls=wijnLocaties[id]||[];
+  delete wijnLocaties[id];
   wines=wines.filter(x=>x.id!==id);
   updateSubtitle();renderLib();
-  try{await sbDelete(id);toast('Wijn verwijderd');}
-  catch(e){toast('Verwijderen mislukt');await init();}
+  try{
+    await Promise.all(wls.map(wl=>sbDeleteWijnLocatie(id,wl.locatie_id).catch(()=>{})));
+    await sbDelete(id);
+    toast('Wijn verwijderd');
+  }catch(e){toast('Verwijderen mislukt');await init();}
 }
 
 /* ── STOCK ── */
