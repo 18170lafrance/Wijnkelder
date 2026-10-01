@@ -336,6 +336,23 @@ main{padding-bottom:calc(var(--tabbar-h) + env(safe-area-inset-bottom,0px) + 16p
 .h-drink-dot{width:12px;height:12px;border-radius:50%;flex-shrink:0;}
 .handleiding-footer{text-align:center;font-size:12px;color:var(--muted);font-style:italic;padding:12px 0;}
 
+/* BACKUP */
+.backup-wrap{padding:14px 14px 24px;}
+.backup-header{text-align:center;padding:20px 0 16px;}
+.backup-title{font-family:Georgia,serif;font-size:22px;color:var(--ink);font-weight:700;}
+.backup-sub{font-size:13px;color:var(--muted);margin-top:4px;}
+.backup-section{display:flex;flex-direction:column;gap:12px;margin-bottom:20px;}
+.backup-card{background:var(--card);border:1px solid var(--border);border-radius:var(--r);padding:20px;cursor:pointer;transition:border-color .2s,transform .1s;text-align:center;}
+.backup-card:hover{border-color:var(--gold);}
+.backup-card:active{transform:scale(.98);}
+.backup-card-icon{font-size:36px;margin-bottom:8px;}
+.backup-card-title{font-size:16px;font-weight:600;color:var(--ink);margin-bottom:4px;}
+.backup-card-desc{font-size:13px;color:var(--muted);line-height:1.4;}
+.backup-info{background:var(--warm);border-radius:var(--r);padding:16px;margin-bottom:16px;}
+.backup-info-title{font-size:14px;font-weight:600;color:var(--ink);margin-bottom:8px;}
+.backup-info-item{font-size:13px;color:var(--muted);padding:3px 0;}
+#backupStatus{text-align:center;font-size:13px;color:var(--muted);min-height:20px;}
+
 /* TOAST + VERSION */
 #version{position:fixed;bottom:calc(var(--tabbar-h) + env(safe-area-inset-bottom,0px) + 4px);right:10px;font-size:10px;color:var(--muted);opacity:.5;pointer-events:none;z-index:50;}
 #toast{position:fixed;bottom:calc(var(--tabbar-h) + env(safe-area-inset-bottom,0px) + 12px);left:50%;transform:translateX(-50%) translateY(12px);background:var(--ink);color:#fff;padding:10px 18px;border-radius:16px;font-size:13px;opacity:0;transition:opacity .2s,transform .2s;pointer-events:none;z-index:400;white-space:normal;max-width:calc(100vw - 32px);text-align:center;line-height:1.5;}
@@ -585,7 +602,7 @@ main{padding-bottom:calc(var(--tabbar-h) + env(safe-area-inset-bottom,0px) + 16p
       <div class="handleiding-header">
         <div style="font-size:48px;margin-bottom:8px">🍷</div>
         <div class="handleiding-title">Wijnbieb</div>
-        <div class="handleiding-sub">Gebruikershandleiding · v2.03-multi</div>
+        <div class="handleiding-sub">Gebruikershandleiding · v2.04-multi</div>
       </div>
 
       <div class="h-section">
@@ -605,6 +622,7 @@ main{padding-bottom:calc(var(--tabbar-h) + env(safe-area-inset-bottom,0px) + 16p
         <div class="h-item"><span class="h-item-icon">📷</span><div><strong>Scan</strong> — Voeg een wijn toe via foto of handmatige invoer.</div></div>
         <div class="h-item"><span class="h-item-icon">📦</span><div><strong>Voorraad</strong> — Statistieken: totalen per type, beoordeling en lage voorraad.</div></div>
         <div class="h-item"><span class="h-item-icon">📍</span><div><strong>Locaties</strong> — Beheer opslaglocaties (kelder, rek, koelkast, etc.).</div></div>
+        <div class="h-item"><span class="h-item-icon">💾</span><div><strong>Back-up</strong> — Maak een back-up van je collectie of herstel vanuit een bestand.</div></div>
         <div class="h-item"><span class="h-item-icon">📖</span><div><strong>Handleiding</strong> — Deze pagina met uitleg over de app.</div></div>
         <div class="h-item"><span class="h-item-icon">⚙️</span><div><strong>Beheer</strong> — (alleen admin) Uitnodigingen en accountinformatie.</div></div>
       </div>
@@ -668,7 +686,54 @@ main{padding-bottom:calc(var(--tabbar-h) + env(safe-area-inset-bottom,0px) + 16p
         <div class="h-drink"><span class="h-drink-dot" style="background:#9A8E88"></span><strong>Voorbij</strong> — Voorbij het optimale drinkvenster.</div>
       </div>
 
-      <div class="handleiding-footer">Wijnbieb v2.03-multi — Veel plezier met je collectie! 🥂</div>
+      <div class="h-section">
+        <div class="h-section-title">8. Back-up &amp; Herstel</div>
+        <p>Op het <strong>Back-up</strong>-tabblad (💾) kun je een volledige back-up maken van je wijncollectie en deze later herstellen.</p>
+        <div class="h-subsection">Back-up maken</div>
+        <div class="h-step"><span class="h-step-num">1</span>Ga naar het <strong>Back-up</strong>-tabblad (💾).</div>
+        <div class="h-step"><span class="h-step-num">2</span>Tik op <strong>"Back-up maken"</strong>.</div>
+        <div class="h-step"><span class="h-step-num">3</span>Er wordt een JSON-bestand gedownload met al je wijnen, locaties en voorraadkoppelingen.</div>
+        <div class="h-tip">💡 Maak regelmatig een back-up, bijvoorbeeld na het toevoegen van meerdere wijnen.</div>
+        <div class="h-subsection">Back-up terugzetten</div>
+        <div class="h-step"><span class="h-step-num">1</span>Tik op <strong>"Back-up terugzetten"</strong> en selecteer een eerder gedownload back-upbestand.</div>
+        <div class="h-step"><span class="h-step-num">2</span>Bevestig het herstel. <strong>Let op:</strong> alle huidige data wordt vervangen door de back-up.</div>
+        <div class="h-step"><span class="h-step-num">3</span>Na het herstel wordt de app automatisch herladen.</div>
+        <div class="h-tip">⚠️ Het terugzetten overschrijft je volledige collectie. Maak eerst een back-up van je huidige data als je die wilt bewaren.</div>
+      </div>
+
+      <div class="handleiding-footer">Wijnbieb v2.04-multi — Veel plezier met je collectie! 🥂</div>
+    </div>
+  </div>
+
+  <!-- BACKUP -->
+  <div class="view" id="view-backup">
+    <div class="backup-wrap">
+      <div class="backup-header">
+        <div style="font-size:48px;margin-bottom:8px">💾</div>
+        <div class="backup-title">Back-up Bieb</div>
+        <div class="backup-sub">Maak een back-up of herstel je collectie</div>
+      </div>
+      <div class="backup-section">
+        <div class="backup-card" onclick="createBackup()">
+          <div class="backup-card-icon">📥</div>
+          <div class="backup-card-title">Back-up maken</div>
+          <div class="backup-card-desc">Download een bestand met al je wijnen, locaties en voorraad.</div>
+        </div>
+        <div class="backup-card" onclick="document.getElementById('restoreFileInput').click()">
+          <div class="backup-card-icon">📤</div>
+          <div class="backup-card-title">Back-up terugzetten</div>
+          <div class="backup-card-desc">Herstel je collectie vanuit een eerder gedownload back-upbestand.</div>
+        </div>
+        <input type="file" id="restoreFileInput" accept=".json" style="display:none" onchange="restoreBackup(event)">
+      </div>
+      <div class="backup-info">
+        <div class="backup-info-title">Wat wordt er opgeslagen?</div>
+        <div class="backup-info-item">🍷 Alle wijnen met foto's en beoordelingen</div>
+        <div class="backup-info-item">📍 Alle locaties</div>
+        <div class="backup-info-item">📦 Voorraad per locatie</div>
+        <div class="backup-info-item">📅 Datum en tijd van de back-up</div>
+      </div>
+      <div id="backupStatus"></div>
     </div>
   </div>
 </main>
@@ -770,6 +835,7 @@ main{padding-bottom:calc(var(--tabbar-h) + env(safe-area-inset-bottom,0px) + 16p
   <button class="tab" id="tab-scan" onclick="switchTab('scan')"><span class="ti">📷</span>Scan</button>
   <button class="tab" id="tab-stock" onclick="switchTab('stock')"><span class="ti">📦</span>Voorraad</button>
   <button class="tab" id="tab-locaties" onclick="switchTab('locaties')"><span class="ti">📍</span>Locaties</button>
+  <button class="tab" id="tab-backup" onclick="switchTab('backup')"><span class="ti">💾</span>Back-up</button>
   <button class="tab" id="tab-handleiding" onclick="switchTab('handleiding')"><span class="ti">📖</span>Handleiding</button>
   <button class="tab" id="tab-admin" onclick="switchTab('admin')" style="display:none"><span class="ti">⚙️</span>Beheer</button>
 </nav>
@@ -782,7 +848,7 @@ main{padding-bottom:calc(var(--tabbar-h) + env(safe-area-inset-bottom,0px) + 16p
   </div>
 </div>
 <div id="toast"></div>
-<div id="version">v2.03-multi</div>
+<div id="version">v2.04-multi</div>
 
 <script>
 /* ── CONFIG ── */
@@ -2114,6 +2180,108 @@ async function saveWine(){
     updateSubtitle();toast(naam+' toegevoegd 🍷');
     resetScan();switchTab('library');renderLib();
   }catch(e){console.error(e);toast('Opslaan mislukt — controleer je verbinding');}
+}
+
+/* ── BACKUP ── */
+function createBackup(){
+  const status=document.getElementById('backupStatus');
+  status.textContent='Back-up voorbereiden...';
+  try{
+    const backup={
+      versie:'2.04-multi',
+      app:'wijnbieb-multi',
+      datum:new Date().toISOString(),
+      user_id:currentUser.id,
+      user_email:currentUser.email,
+      wijnen:wines,
+      locaties:locaties,
+      wijnLocaties:wijnLocaties
+    };
+    const blob=new Blob([JSON.stringify(backup,null,2)],{type:'application/json'});
+    const url=URL.createObjectURL(blob);
+    const a=document.createElement('a');
+    const d=new Date();
+    const ts=d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0')+'_'+String(d.getHours()).padStart(2,'0')+String(d.getMinutes()).padStart(2,'0');
+    a.href=url;a.download='wijnbieb-backup-'+ts+'.json';
+    document.body.appendChild(a);a.click();document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+    status.textContent='Back-up gedownload ('+wines.length+' wijnen, '+locaties.length+' locaties)';
+    setTimeout(()=>status.textContent='',5000);
+  }catch(e){
+    console.error(e);
+    status.textContent='Back-up maken mislukt: '+e.message;
+  }
+}
+
+async function restoreBackup(ev){
+  const file=ev.target.files[0];
+  if(!file)return;
+  const status=document.getElementById('backupStatus');
+  status.textContent='Bestand lezen...';
+  try{
+    const text=await file.text();
+    const backup=JSON.parse(text);
+    if(!backup.wijnen||!Array.isArray(backup.wijnen)){
+      status.textContent='Ongeldig back-upbestand (geen wijnen gevonden)';return;
+    }
+    if(!backup.locaties) backup.locaties=[];
+    if(!backup.wijnLocaties) backup.wijnLocaties={};
+    const wCount=backup.wijnen.length;
+    const lCount=backup.locaties.length;
+    if(!confirm('Weet je zeker dat je de back-up wilt terugzetten?\n\nDit vervangt je volledige collectie door:\n• '+wCount+' wijnen\n• '+lCount+' locaties\n\nDeze actie kan niet ongedaan worden.')){
+      status.textContent='Herstel geannuleerd';
+      ev.target.value='';return;
+    }
+    const token=await getToken();
+    status.textContent='Huidige data verwijderen...';
+    const allWL=await sbGetAlleWijnLocaties();
+    await Promise.all(allWL.map(wl=>fetch(SB_URL+'/rest/v1/wijn_locaties?id=eq.'+wl.id,{method:'DELETE',headers:hdrs(token)}).catch(()=>{})));
+    await Promise.all(wines.map(w=>sbDelete(w.id).catch(()=>{})));
+    await Promise.all(locaties.map(l=>sbDeleteLocatie(l.id).catch(()=>{})));
+
+    status.textContent='Locaties herstellen...';
+    const locMap={};
+    for(const loc of backup.locaties){
+      try{
+        const saved=await sbPostLocatie(loc.naam);
+        const newId=Array.isArray(saved)?saved[0].id:saved.id;
+        locMap[loc.id]=newId;
+      }catch(e){console.error('Locatie restore fail:',loc.naam,e);}
+    }
+
+    status.textContent='Wijnen herstellen...';
+    const wijnMap={};
+    for(const wijn of backup.wijnen){
+      const oldId=wijn.id;
+      const payload={...wijn};
+      delete payload.id;delete payload.toegevoegd_op;delete payload.user_id;
+      try{
+        const saved=await sbPost(payload);
+        const newId=Array.isArray(saved)?saved[0].id:saved.id;
+        wijnMap[oldId]=newId;
+      }catch(e){console.error('Wijn restore fail:',wijn.naam,e);}
+    }
+
+    status.textContent='Voorraadkoppelingen herstellen...';
+    const wlObj=backup.wijnLocaties;
+    for(const oldWijnId of Object.keys(wlObj)){
+      const newWijnId=wijnMap[oldWijnId];
+      if(!newWijnId) continue;
+      for(const wl of wlObj[oldWijnId]){
+        const newLocId=locMap[wl.locatie_id];
+        if(!newLocId) continue;
+        try{await sbUpsertWijnLocatie(newWijnId,newLocId,wl.voorraad||0);}catch(e){console.error('WL restore fail:',e);}
+      }
+    }
+
+    status.textContent='Herstel voltooid! App wordt herladen...';
+    ev.target.value='';
+    setTimeout(()=>location.reload(),1500);
+  }catch(e){
+    console.error(e);
+    status.textContent='Herstel mislukt: '+e.message;
+    ev.target.value='';
+  }
 }
 
 /* ── NAV ── */
