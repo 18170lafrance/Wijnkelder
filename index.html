@@ -1907,27 +1907,24 @@ function renderLib(){
   // Search filter
   const sq=(document.getElementById('searchInput').value||'').trim().toLowerCase();
   if(sq){
-    // Type-labels voor zoeken op leesbare naam (bijv. 'rood', 'wit', 'rosé')
-    const TYPE_ZOEK={'red':'rood','white':'wit','rose':'rosé','sparkling':'mousseux mousserend','dessert':'dessert','port':'port'};
-    // Formaat-labels
+    // Normaliseer zoekterm: verwijder accenten zodat é=e, â=a enz.
+    const s=norm(sq);
+    const TYPE_ZOEK={'red':'rood','white':'wit','rose':'rose','sparkling':'mousseux mousserend','dessert':'dessert','port':'port'};
     const FORMAAT_ZOEK={'piccolo':'piccolo','half':'half','standard':'standaard','magnum':'magnum','double':'double magnum','jeroboam':'jeroboam','rehoboam':'rehoboam'};
     list=list.filter(w=>{
-      const s=sq;
-      // Alle tekstvelden van de wijnkaart
-      if((w.naam||'').toLowerCase().includes(s)) return true;
-      if((w.producent||'').toLowerCase().includes(s)) return true;
+      if(norm(w.naam).includes(s)) return true;
+      if(norm(w.producent).includes(s)) return true;
       if((w.jaar||'').toString().includes(s)) return true;
-      if((TYPE_ZOEK[w.type]||w.type||'').toLowerCase().includes(s)) return true;
-      if((w.druivenras||'').toLowerCase().includes(s)) return true;
-      if((w.regio||'').toLowerCase().includes(s)) return true;
-      if((w.notities||'').toLowerCase().includes(s)) return true;
-      if((w.herkomst||'').toLowerCase().includes(s)) return true;
-      if((FORMAAT_ZOEK[w.formaat]||w.formaat||'').toLowerCase().includes(s)) return true;
+      if(norm(TYPE_ZOEK[w.type]||w.type||'').includes(s)) return true;
+      if(norm(w.druivenras).includes(s)) return true;
+      if(norm(w.regio).includes(s)) return true;
+      if(norm(w.notities).includes(s)) return true;
+      if(norm(w.herkomst).includes(s)) return true;
+      if(norm(FORMAAT_ZOEK[w.formaat]||w.formaat||'').includes(s)) return true;
       if(w.beoordeling&&w.beoordeling.toString().includes(s)) return true;
-      // Locatienamen van deze wijn
       const wls=wijnLocaties[w.id]||[];
-      if(wls.some(x=>(x.naam||'').toLowerCase().includes(s))) return true;
-      if(wls.some(x=>(x.positie||'').toLowerCase().includes(s))) return true;
+      if(wls.some(x=>norm(x.naam).includes(s))) return true;
+      if(wls.some(x=>norm(x.positie).includes(s))) return true;
       return false;
     });
   }
@@ -1990,6 +1987,7 @@ function wcHTML(w){
 }
 
 function esc(s){return(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');}
+function norm(s){return(s||'').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'');}
 
 async function adjStock(id,d){
   const w=wines.find(x=>x.id===id);if(!w)return;
