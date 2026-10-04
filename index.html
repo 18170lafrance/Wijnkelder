@@ -79,6 +79,8 @@ main{padding-bottom:calc(var(--tabbar-h) + env(safe-area-inset-bottom,0px) + 16p
 .chip{flex-shrink:0;padding:5px 12px;border-radius:20px;font-size:12px;border:1px solid var(--border);background:var(--card);cursor:pointer;white-space:nowrap;color:var(--ink);}
 .chip.active{background:var(--claret);color:#fff;border-color:var(--claret);}
 
+/* LIBRARY SECTION TITLE */
+.lib-section-title{font-family:Georgia,serif;font-size:17px;color:var(--claret);padding:12px 16px 4px;border-top:1px solid var(--border);margin-top:4px;}
 /* WINE CARDS */
 .wine-list{padding:8px 0;}
 .wc{background:var(--card);border:1px solid var(--border);border-radius:var(--r);margin:8px 14px;overflow:hidden;cursor:pointer;transition:box-shadow .15s;}
@@ -120,7 +122,8 @@ main{padding-bottom:calc(var(--tabbar-h) + env(safe-area-inset-bottom,0px) + 16p
 .panel{position:fixed;bottom:0;left:0;right:0;background:var(--card);border-radius:16px 16px 0 0;z-index:151;transform:translateY(100%);transition:transform .3s cubic-bezier(.4,0,.2,1);max-height:90dvh;overflow-y:auto;padding-bottom:env(safe-area-inset-bottom,0px);}
 .panel.open{transform:translateY(0);}
 .panel-handle{width:36px;height:4px;background:var(--border);border-radius:2px;margin:12px auto 0;}
-.panel-head{padding:16px 16px 12px;border-bottom:1px solid var(--border);display:flex;align-items:flex-start;gap:12px;}
+.panel-head{padding:16px 16px 12px;border-bottom:1px solid var(--border);display:flex;align-items:flex-start;gap:12px;position:relative;}
+.panel-close{position:absolute;top:12px;right:12px;width:32px;height:32px;border-radius:50%;border:none;background:var(--warm);color:var(--muted);font-size:18px;cursor:pointer;display:flex;align-items:center;justify-content:center;line-height:1;}
 .panel-photo{width:64px;height:64px;border-radius:10px;object-fit:cover;flex-shrink:0;background:var(--warm);}
 .panel-photo-ph{width:64px;height:64px;border-radius:10px;background:var(--warm);display:flex;align-items:center;justify-content:center;font-size:32px;flex-shrink:0;}
 .panel-title{font-family:Georgia,serif;font-size:18px;color:var(--ink);line-height:1.3;}
@@ -504,6 +507,7 @@ main{padding-bottom:calc(var(--tabbar-h) + env(safe-area-inset-bottom,0px) + 16p
         <label><input type="checkbox" id="searchInStock" checked onchange="renderLib()"> Alleen op voorraad</label>
       </div>
     </div>
+    <div class="lib-section-title" id="libSectionTitle">Mijn Wijnen</div>
     <div class="wine-list" id="wineList">
       <div class="loader-full"><div class="spinner"></div><p>Laden…</p></div>
     </div>
@@ -682,7 +686,7 @@ main{padding-bottom:calc(var(--tabbar-h) + env(safe-area-inset-bottom,0px) + 16p
       <div class="handleiding-header">
         <div style="font-size:48px;margin-bottom:8px">🍷</div>
         <div class="handleiding-title">Wijnbieb</div>
-        <div class="handleiding-sub">Gebruikershandleiding · v2.07-multi</div>
+        <div class="handleiding-sub">Gebruikershandleiding · v2.08-multi</div>
       </div>
 
       <div class="h-section">
@@ -783,7 +787,7 @@ main{padding-bottom:calc(var(--tabbar-h) + env(safe-area-inset-bottom,0px) + 16p
         <div class="h-tip">⚠️ Het terugzetten overschrijft je volledige collectie. Maak eerst een back-up van je huidige data als je die wilt bewaren.</div>
       </div>
 
-      <div class="handleiding-footer">Wijnbieb v2.07-multi — Veel plezier met je collectie! 🥂</div>
+      <div class="handleiding-footer">Wijnbieb v2.08-multi — Veel plezier met je collectie! 🥂</div>
     </div>
   </div>
 
@@ -830,6 +834,7 @@ main{padding-bottom:calc(var(--tabbar-h) + env(safe-area-inset-bottom,0px) + 16p
       <div class="panel-title" id="panelTitle"></div>
       <div class="panel-sub" id="panelSub"></div>
     </div>
+    <button class="panel-close" onclick="closePanel()" title="Sluiten">✕</button>
   </div>
   <div class="panel-body">
     <div class="panel-field"><label>Wijnnaam</label><input type="text" id="pName"></div>
@@ -930,7 +935,7 @@ main{padding-bottom:calc(var(--tabbar-h) + env(safe-area-inset-bottom,0px) + 16p
   </div>
 </div>
 <div id="toast"></div>
-<div id="version">v2.07-multi</div>
+<div id="version">v2.08-multi</div>
 
 <script>
 /* ── CONFIG ── */
@@ -1901,6 +1906,7 @@ function renderLib(){
   else if(sort==='price_asc') list.sort((a,b)=>(parseFloat(a.prijs)||0)-(parseFloat(b.prijs)||0));
   else if(sort==='price_desc') list.sort((a,b)=>(parseFloat(b.prijs)||0)-(parseFloat(a.prijs)||0));
   else if(sort==='rating') list.sort((a,b)=>(b.beoordeling||0)-(a.beoordeling||0));
+  document.getElementById('libSectionTitle').textContent='Mijn Wijnen'+(list.length?' ('+list.length+')':'');
   const el=document.getElementById('wineList');
   if(!list.length){
     el.innerHTML=`<div class="empty"><div class="empty-icon">${wines.length===0?'🍾':'🔍'}</div><div class="empty-title">${wines.length===0?'Nog geen wijnen':'Geen resultaten'}</div><div class="empty-sub">${wines.length===0?'Scan een etiket om te beginnen':'Pas de filters aan'}</div></div>`;
