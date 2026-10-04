@@ -296,6 +296,11 @@ main{padding-bottom:calc(var(--tabbar-h) + env(safe-area-inset-bottom,0px) + 16p
 .filter-drawer.open{display:block;}
 .filter-drawer .filter-bar{flex-wrap:wrap;overflow:visible;}
 .filter-drawer .chip{margin-bottom:4px;}
+.search-bar{display:flex;gap:8px;align-items:center;padding:4px 14px 6px;flex-wrap:wrap;}
+.search-bar input[type="text"]{flex:1;min-width:140px;padding:7px 12px;border-radius:20px;border:1px solid var(--border);font-size:13px;background:var(--card);color:var(--ink);}
+.search-bar input[type="text"]::placeholder{color:var(--muted);}
+.search-bar label{font-size:12px;color:var(--muted);display:flex;align-items:center;gap:4px;white-space:nowrap;cursor:pointer;}
+.search-bar input[type="checkbox"]{accent-color:var(--claret);}
 
 /* LOCATIES TAB VIEW */
 .loc-view-wrap{padding:14px;}
@@ -469,6 +474,7 @@ main{padding-bottom:calc(var(--tabbar-h) + env(safe-area-inset-bottom,0px) + 16p
           <button class="chip" onclick="setFilter('white',this)">🥂 Wit</button>
           <button class="chip" onclick="setFilter('rose',this)">🌸 Rosé</button>
           <button class="chip" onclick="setFilter('sparkling',this)">✨ Mousseux</button>
+          <button class="chip" onclick="setFilter('dessert',this)">🍯 Dessert</button>
           <button class="chip" onclick="setFilter('port',this)">🍾 Port</button>
           <button class="chip" onclick="setFilter('instock',this)">Op voorraad</button>
           <button class="chip" onclick="setFilter('drink:now',this)">🟢 Nu drinken</button>
@@ -491,6 +497,10 @@ main{padding-bottom:calc(var(--tabbar-h) + env(safe-area-inset-bottom,0px) + 16p
         <input type="number" id="priceMin" placeholder="Min €" min="0" oninput="renderLib()">
         <span>–</span>
         <input type="number" id="priceMax" placeholder="Max €" min="0" oninput="renderLib()">
+      </div>
+      <div class="search-bar">
+        <input type="text" id="searchInput" placeholder="Zoek op naam of smaak…" oninput="renderLib()">
+        <label><input type="checkbox" id="searchInStock" checked onchange="renderLib()"> Alleen op voorraad</label>
       </div>
     </div>
     <div class="wine-list" id="wineList">
@@ -671,7 +681,7 @@ main{padding-bottom:calc(var(--tabbar-h) + env(safe-area-inset-bottom,0px) + 16p
       <div class="handleiding-header">
         <div style="font-size:48px;margin-bottom:8px">🍷</div>
         <div class="handleiding-title">Wijnbieb</div>
-        <div class="handleiding-sub">Gebruikershandleiding · v2.05-multi</div>
+        <div class="handleiding-sub">Gebruikershandleiding · v2.07-multi</div>
       </div>
 
       <div class="h-section">
@@ -716,7 +726,9 @@ main{padding-bottom:calc(var(--tabbar-h) + env(safe-area-inset-bottom,0px) + 16p
       <div class="h-section">
         <div class="h-section-title">5. Bibliotheek gebruiken</div>
         <div class="h-subsection">Filteren</div>
-        <p>Tik op "Filter" om de filterbalk te openen. Kies een type (Rood, Wit, Rosé, etc.), voorraadstatus, drinkvenster of locatie. Tik "Wis" om het filter te resetten.</p>
+        <p>Tik op "Filter" om de filterbalk te openen. Kies een type (Rood, Wit, Rosé, Mousseux, Dessert, Port), voorraadstatus, drinkvenster of locatie. Tik "Wis" om het filter te resetten.</p>
+        <div class="h-subsection">Zoeken</div>
+        <p>Gebruik het zoekveld om te zoeken op (deel van de) wijnnaam of smaaksensatie in de proefnotities. De optie "Alleen op voorraad" is standaard aangevinkt — zo zoek je alleen in wijnen die je op voorraad hebt.</p>
         <div class="h-subsection">Sorteren en prijsfilter</div>
         <p>Gebruik het sorteermenu (Nieuwste, Naam, Prijs, Beoordeling). Vul optioneel een minimum- en maximumprijs in.</p>
         <div class="h-subsection">Wijndetails bewerken</div>
@@ -770,7 +782,7 @@ main{padding-bottom:calc(var(--tabbar-h) + env(safe-area-inset-bottom,0px) + 16p
         <div class="h-tip">⚠️ Het terugzetten overschrijft je volledige collectie. Maak eerst een back-up van je huidige data als je die wilt bewaren.</div>
       </div>
 
-      <div class="handleiding-footer">Wijnbieb v2.05-multi — Veel plezier met je collectie! 🥂</div>
+      <div class="handleiding-footer">Wijnbieb v2.07-multi — Veel plezier met je collectie! 🥂</div>
     </div>
   </div>
 
@@ -917,7 +929,7 @@ main{padding-bottom:calc(var(--tabbar-h) + env(safe-area-inset-bottom,0px) + 16p
   </div>
 </div>
 <div id="toast"></div>
-<div id="version">v2.05-multi</div>
+<div id="version">v2.07-multi</div>
 
 <script>
 /* ── CONFIG ── */
@@ -1875,6 +1887,10 @@ function renderLib(){
     list=list.filter(w=>(wijnLocaties[w.id]||[]).some(x=>x.locatie_id===lid&&x.voorraad>0));
   }
   else if(filter!=='all') list=list.filter(w=>w.type===filter);
+  // Search filter
+  const sq=(document.getElementById('searchInput').value||'').trim().toLowerCase();
+  if(sq) list=list.filter(w=>(w.naam||'').toLowerCase().includes(sq)||(w.notities||'').toLowerCase().includes(sq));
+  if(document.getElementById('searchInStock').checked) list=list.filter(w=>(w.voorraad||0)>0);
   const pMin=parseFloat(document.getElementById('priceMin').value);
   const pMax=parseFloat(document.getElementById('priceMax').value);
   if(!isNaN(pMin)) list=list.filter(w=>(parseFloat(w.prijs)||0)>=pMin);
