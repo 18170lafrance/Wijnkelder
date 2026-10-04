@@ -503,7 +503,7 @@ main{padding-bottom:calc(var(--tabbar-h) + env(safe-area-inset-bottom,0px) + 16p
         <input type="number" id="priceMax" placeholder="Max €" min="0" oninput="renderLib()">
       </div>
       <div class="search-bar">
-        <input type="text" id="searchInput" placeholder="Zoek op naam of smaak…" onkeydown="if(event.key==='Enter')renderLib()">
+        <input type="text" id="searchInput" placeholder="Zoek op naam, producent, regio, druif, herkomst, locatie…" onkeydown="if(event.key==='Enter')renderLib()">
         <button class="filter-toggle-btn" onclick="renderLib()" style="background:var(--claret);color:#fff;border-color:var(--claret);">🔍 Zoek</button>
         <label><input type="checkbox" id="searchInStock" checked onchange="renderLib()"> Alleen op voorraad</label>
       </div>
@@ -741,7 +741,7 @@ main{padding-bottom:calc(var(--tabbar-h) + env(safe-area-inset-bottom,0px) + 16p
         <div class="h-subsection">Filteren</div>
         <p>Tik op "Filter" om de filterbalk te openen. Kies een type (Rood, Wit, Rosé, Mousseux, Dessert, Port), voorraadstatus, drinkvenster of locatie. Tik "Wis" om het filter te resetten.</p>
         <div class="h-subsection">Zoeken</div>
-        <p>Gebruik het zoekveld om te zoeken op (deel van de) wijnnaam of smaaksensatie in de proefnotities. De optie "Alleen op voorraad" is standaard aangevinkt — zo zoek je alleen in wijnen die je op voorraad hebt.</p>
+        <p>Gebruik het zoekveld om te zoeken op alle velden van de wijnkaart — ook op delen van woorden. Er wordt gezocht in: naam, producent, regio, druivenras, wijntype (bijv. "rood" of "wit"), jaar, herkomst, locatie en positie, proefnotities, flesformaat en beoordeling. De optie "Alleen op voorraad" is standaard aangevinkt — zo zoek je alleen in wijnen die je op voorraad hebt.</p>
         <div class="h-subsection">Sorteren en prijsfilter</div>
         <p>Gebruik het sorteermenu (Nieuwste, Naam, Prijs, Beoordeling). Vul optioneel een minimum- en maximumprijs in.</p>
         <div class="h-subsection">Titelbalk</div>
@@ -1906,7 +1906,31 @@ function renderLib(){
   else if(filter!=='all') list=list.filter(w=>w.type===filter);
   // Search filter
   const sq=(document.getElementById('searchInput').value||'').trim().toLowerCase();
-  if(sq) list=list.filter(w=>(w.naam||'').toLowerCase().includes(sq)||(w.notities||'').toLowerCase().includes(sq));
+  if(sq){
+    // Type-labels voor zoeken op leesbare naam (bijv. 'rood', 'wit', 'rosé')
+    const TYPE_ZOEK={'red':'rood','white':'wit','rose':'rosé','sparkling':'mousseux mousserend','dessert':'dessert','port':'port'};
+    // Formaat-labels
+    const FORMAAT_ZOEK={'piccolo':'piccolo','half':'half','standard':'standaard','magnum':'magnum','double':'double magnum','jeroboam':'jeroboam','rehoboam':'rehoboam'};
+    list=list.filter(w=>{
+      const s=sq;
+      // Alle tekstvelden van de wijnkaart
+      if((w.naam||'').toLowerCase().includes(s)) return true;
+      if((w.producent||'').toLowerCase().includes(s)) return true;
+      if((w.jaar||'').toString().includes(s)) return true;
+      if((TYPE_ZOEK[w.type]||w.type||'').toLowerCase().includes(s)) return true;
+      if((w.druivenras||'').toLowerCase().includes(s)) return true;
+      if((w.regio||'').toLowerCase().includes(s)) return true;
+      if((w.notities||'').toLowerCase().includes(s)) return true;
+      if((w.herkomst||'').toLowerCase().includes(s)) return true;
+      if((FORMAAT_ZOEK[w.formaat]||w.formaat||'').toLowerCase().includes(s)) return true;
+      if(w.beoordeling&&w.beoordeling.toString().includes(s)) return true;
+      // Locatienamen van deze wijn
+      const wls=wijnLocaties[w.id]||[];
+      if(wls.some(x=>(x.naam||'').toLowerCase().includes(s))) return true;
+      if(wls.some(x=>(x.positie||'').toLowerCase().includes(s))) return true;
+      return false;
+    });
+  }
   if(document.getElementById('searchInStock').checked) list=list.filter(w=>(w.voorraad||0)>0);
   const pMin=parseFloat(document.getElementById('priceMin').value);
   const pMax=parseFloat(document.getElementById('priceMax').value);
