@@ -67,7 +67,7 @@ main{padding-bottom:calc(var(--tabbar-h) + env(safe-area-inset-bottom,0px) + 16p
 .view.active{display:block;}
 
 /* FILTER + SORT BAR */
-.ctrl-bar{padding:10px 14px 4px;display:flex;flex-direction:column;gap:6px;}
+.ctrl-bar{padding:10px 14px 4px;display:flex;flex-direction:column;gap:6px;position:sticky;top:0;z-index:90;background:var(--cream);border-bottom:1px solid var(--border);}
 .filter-bar{display:flex;gap:6px;overflow-x:auto;scrollbar-width:none;}
 .filter-bar::-webkit-scrollbar{display:none;}
 .sort-bar{display:flex;gap:6px;align-items:center;}
@@ -95,7 +95,8 @@ main{padding-bottom:calc(var(--tabbar-h) + env(safe-area-inset-bottom,0px) + 16p
 .badge{font-size:11px;padding:2px 8px;border-radius:20px;font-weight:500;}
 .b-red{background:#F3E5E8;color:#6B1A2E;}.b-white{background:#FDF8EC;color:#7A5E10;}
 .b-rose{background:#FAE8EC;color:#8B2A40;}.b-spark{background:#EAF2F8;color:#1A5276;}
-.b-des{background:#F4EAD5;color:#6B4A0A;}.b-port{background:#F0E0E8;color:#3D0C1F;}.b-year{background:var(--warm);color:var(--muted);}
+.b-des{background:#F4EAD5;color:#6B4A0A;}.b-port{background:#F0E0E8;color:#3D0C1F;}
+.b-herkomst{background:#F0F4E8;color:#3A5A1A;font-size:11px;}.b-year{background:var(--warm);color:var(--muted);}
 .b-price{background:#F0EBF8;color:#4A2080;}
 .b-format{background:#E8F0F8;color:#2A4A6B;}
 .b-ok{background:var(--success-bg);color:var(--success);}
@@ -585,6 +586,7 @@ main{padding-bottom:calc(var(--tabbar-h) + env(safe-area-inset-bottom,0px) + 16p
         <div class="sff"><label>Locatie</label>
           <select id="fLocatie"><option value="">— Geen locatie —</option></select>
         </div>
+        <div class="sff"><label>Herkomst (optioneel)</label><input type="text" id="fHerkomst" placeholder="Bijv. Domaine, Wijnzaak X, Cadeau van…" maxlength="80"></div>
         <button class="btn-primary" onclick="saveWine()">Toevoegen aan bibliotheek</button>
         <button class="btn-secondary" onclick="resetScan()">↩ Opnieuw scannen</button>
       </div>
@@ -686,7 +688,7 @@ main{padding-bottom:calc(var(--tabbar-h) + env(safe-area-inset-bottom,0px) + 16p
       <div class="handleiding-header">
         <div style="font-size:48px;margin-bottom:8px">🍷</div>
         <div class="handleiding-title">Wijnbieb</div>
-        <div class="handleiding-sub">Gebruikershandleiding · v2.08-multi</div>
+        <div class="handleiding-sub">Gebruikershandleiding · v2.09-multi</div>
       </div>
 
       <div class="h-section">
@@ -726,6 +728,12 @@ main{padding-bottom:calc(var(--tabbar-h) + env(safe-area-inset-bottom,0px) + 16p
         <div class="h-step"><span class="h-step-num">2</span>Vul naam, producent, jaar, type en overige velden in.</div>
         <div class="h-step"><span class="h-step-num">3</span>Tik op <strong>Toevoegen aan bibliotheek</strong>.</div>
         <div class="h-tip">💡 Bij het wijzigen van het wijntype haalt de app automatisch extra informatie op (druivenras, regio, geschatte prijs en proefnotities).</div>
+        <div class="h-subsection">Herkomst vastleggen (optioneel)</div>
+        <p>Bij het toevoegen van een wijn kun je de herkomst invullen: waar heb je de wijn vandaan? Dit is een vrij tekstveld. Voorbeelden:</p>
+        <div class="h-item"><span class="h-item-icon">🏪</span><div><strong>Wijnzaak / Domaine</strong> — bijv. "Domaine de la Romanée-Conti" of "Wijnzaak De Gouden Druif"</div></div>
+        <div class="h-item"><span class="h-item-icon">🎁</span><div><strong>Cadeau</strong> — bijv. "Cadeau van Jan en Marie, verjaardag 2026"</div></div>
+        <div class="h-item"><span class="h-item-icon">🛒</span><div><strong>Supermarkt / webshop</strong> — bijv. "Albert Heijn, aanbieding dec 2026"</div></div>
+        <div class="h-tip">💡 De herkomst is optioneel. Als je het invult verschijnt het als groene badge op de wijnkaart en wordt het meegenomen bij het delen van wijninfo.</div>
       </div>
 
       <div class="h-section">
@@ -861,6 +869,7 @@ main{padding-bottom:calc(var(--tabbar-h) + env(safe-area-inset-bottom,0px) + 16p
     <div class="type-notice" id="pTypeNotice"></div>
     <div class="type-loading" id="pTypeLoading"><div class="spinner" style="width:20px;height:20px;margin:0 auto 4px"></div>Nieuwe wijninfo ophalen…</div>
     <div class="panel-field"><label>Prijs (€)</label><input type="number" id="pPrice" step="0.01" min="0"></div>
+    <div class="panel-field"><label>Herkomst (optioneel)</label><input type="text" id="pHerkomst" placeholder="Bijv. Domaine, Wijnzaak X, Cadeau van…" maxlength="80"></div>
     <div class="panel-field">
       <label>Locaties &amp; voorraad</label>
       <div class="loc-stock-list" id="panelLocList"></div>
@@ -937,7 +946,7 @@ main{padding-bottom:calc(var(--tabbar-h) + env(safe-area-inset-bottom,0px) + 16p
   </div>
 </div>
 <div id="toast"></div>
-<div id="version">v2.08-multi</div>
+<div id="version">v2.09-multi</div>
 
 <script>
 /* ── CONFIG ── */
@@ -1941,6 +1950,7 @@ function wcHTML(w){
           <span class="badge ${sc}">${sl}</span>
           ${drinkBadgeHTML(w)}
           ${locatieBadgesHTML(w.id)}
+          ${w.herkomst?`<span class="badge b-herkomst">🏪 ${esc(w.herkomst)}</span>`:""}
         </div>
       </div>
     </div>
@@ -2070,6 +2080,7 @@ function openPanel(id){
   document.getElementById('pDrinkTot').value=w.drink_tot||'';
   document.getElementById('pFormat').value=VALID_FORMATS.includes(w.formaat)?w.formaat:'standard';
   document.getElementById('pNotes').value=w.notities||'';
+  document.getElementById('pHerkomst').value=w.herkomst||'';
   updateNotesPreview('pNotes','pNotesPreview','pNotesEdit');
   updatePanelStars();
   renderPanelLocaties(id);
@@ -2100,6 +2111,7 @@ async function savePanel(){
     prijs:parseFloat(document.getElementById('pPrice').value)||null,
     voorraad:(wijnLocaties[id]||[]).reduce((s,wl)=>s+(wl.voorraad||0),0)||w.voorraad||0,
     notities:document.getElementById('pNotes').value.trim()||null,
+    herkomst:document.getElementById('pHerkomst').value.trim()||null,
     formaat:VALID_FORMATS.includes(document.getElementById('pFormat').value)?document.getElementById('pFormat').value:'standard',
     drink_van:parseInt(document.getElementById('pDrinkVan').value)||null,
     drink_tot:parseInt(document.getElementById('pDrinkTot').value)||null,
@@ -2363,6 +2375,7 @@ function clearForm(){
   document.getElementById('fStock').value='1';document.getElementById('fFormat').value='standard';
   document.getElementById('fDrinkVan').value='';document.getElementById('fDrinkTot').value='';
   document.getElementById('fLocatie').value='';
+  const fh=document.getElementById('fHerkomst');if(fh)fh.value='';
   const fp=document.getElementById('fNotesPreview');if(fp){fp.innerHTML='';fp.style.display='none';}
   const fta=document.getElementById('fNotes');if(fta)fta.style.display='block';
   const feb=document.getElementById('fNotesEdit');if(feb)feb.style.display='none';
@@ -2407,6 +2420,7 @@ async function saveWine(){
     prijs:parseFloat(document.getElementById('fPrice').value)||null,
     voorraad:parseInt(document.getElementById('fStock').value)||1,
     notities:document.getElementById('fNotes').value.trim()||null,
+    herkomst:document.getElementById('fHerkomst').value.trim()||null,
     formaat:document.getElementById('fFormat').value||'standard',
     drink_van:parseInt(document.getElementById('fDrinkVan').value)||null,
     drink_tot:parseInt(document.getElementById('fDrinkTot').value)||null,
