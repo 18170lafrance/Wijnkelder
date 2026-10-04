@@ -499,7 +499,8 @@ main{padding-bottom:calc(var(--tabbar-h) + env(safe-area-inset-bottom,0px) + 16p
         <input type="number" id="priceMax" placeholder="Max €" min="0" oninput="renderLib()">
       </div>
       <div class="search-bar">
-        <input type="text" id="searchInput" placeholder="Zoek op naam of smaak…" oninput="renderLib()">
+        <input type="text" id="searchInput" placeholder="Zoek op naam of smaak…" onkeydown="if(event.key==='Enter')renderLib()">
+        <button class="filter-toggle-btn" onclick="renderLib()" style="background:var(--claret);color:#fff;border-color:var(--claret);">🔍 Zoek</button>
         <label><input type="checkbox" id="searchInStock" checked onchange="renderLib()"> Alleen op voorraad</label>
       </div>
     </div>
