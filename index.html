@@ -80,7 +80,7 @@ main{padding-bottom:calc(var(--tabbar-h) + env(safe-area-inset-bottom,0px) + 16p
 .chip.active{background:var(--claret);color:#fff;border-color:var(--claret);}
 
 /* LIBRARY SECTION TITLE */
-.lib-section-title{font-family:Georgia,serif;font-size:17px;color:var(--claret);padding:12px 16px 4px;border-top:1px solid var(--border);margin-top:4px;}
+.lib-section-title{font-family:Georgia,serif;font-size:17px;color:var(--claret);padding:8px 16px 6px;background:var(--cream);position:sticky;top:var(--ctrl-bar-h,0px);z-index:89;border-bottom:1px solid var(--border);}
 /* WINE CARDS */
 .wine-list{padding:8px 0;}
 .wc{background:var(--card);border:1px solid var(--border);border-radius:var(--r);margin:8px 14px;overflow:hidden;cursor:pointer;transition:box-shadow .15s;}
@@ -481,6 +481,7 @@ main{padding-bottom:calc(var(--tabbar-h) + env(safe-area-inset-bottom,0px) + 16p
           <button class="chip" onclick="setFilter('dessert',this)">🍯 Dessert</button>
           <button class="chip" onclick="setFilter('port',this)">🍾 Port</button>
           <button class="chip" onclick="setFilter('instock',this)">Op voorraad</button>
+          <button class="chip" onclick="setFilter('uitgeput',this)">Niet op voorraad</button>
           <button class="chip" onclick="setFilter('drink:now',this)">🟢 Nu drinken</button>
           <button class="chip" onclick="setFilter('drink:soon',this)">🟡 Binnenkort</button>
           <button class="chip" onclick="setFilter('drink:wait',this)">🔵 Bewaren</button>
@@ -739,13 +740,20 @@ main{padding-bottom:calc(var(--tabbar-h) + env(safe-area-inset-bottom,0px) + 16p
       <div class="h-section">
         <div class="h-section-title">5. Bibliotheek gebruiken</div>
         <div class="h-subsection">Filteren</div>
-        <p>Tik op "Filter" om de filterbalk te openen. Kies een type (Rood, Wit, Rosé, Mousseux, Dessert, Port), voorraadstatus, drinkvenster of locatie. Tik "Wis" om het filter te resetten.</p>
+        <p>Tik op "⚙️ Filter" om de filterbalk te openen. De filterbalk en de titelregel "Mijn Wijnen" blijven zichtbaar terwijl je door de wijnkaarten scrolt — zo kun je altijd snel wisselen van filter.</p>
+        <p>Beschikbare filters:</p>
+        <div class="h-item"><span class="h-item-icon">🍷</span><div><strong>Type</strong> — Rood, Wit, Rosé, Mousseux, Dessert, Port</div></div>
+        <div class="h-item"><span class="h-item-icon">✅</span><div><strong>Op voorraad</strong> — alleen wijnen met minimaal 1 fles</div></div>
+        <div class="h-item"><span class="h-item-icon">0️⃣</span><div><strong>Niet op voorraad</strong> — wijnen die uitgeput zijn, handig voor herbestelling</div></div>
+        <div class="h-item"><span class="h-item-icon">🟢</span><div><strong>Drinkvenster</strong> — Nu drinken, Binnenkort, Bewaren</div></div>
+        <div class="h-item"><span class="h-item-icon">📍</span><div><strong>Locatie</strong> — filter op een specifieke opslaglocatie</div></div>
+        <p>Tik "✕ Wis" om het filter te resetten en alle wijnen te tonen.</p>
         <div class="h-subsection">Zoeken</div>
         <p>Gebruik het zoekveld om te zoeken op alle velden van de wijnkaart — ook op delen van woorden. Er wordt gezocht in: naam, producent, regio, druivenras, wijntype (bijv. "rood" of "wit"), jaar, herkomst, locatie en positie, proefnotities, flesformaat en beoordeling. De optie "Alleen op voorraad" is standaard aangevinkt — zo zoek je alleen in wijnen die je op voorraad hebt.</p>
         <div class="h-subsection">Sorteren en prijsfilter</div>
         <p>Gebruik het sorteermenu (Nieuwste, Naam, Prijs, Beoordeling). Vul optioneel een minimum- en maximumprijs in.</p>
         <div class="h-subsection">Titelbalk</div>
-        <p>Boven de wijnkaarten staat de titelbalk "Mijn Wijnen" met daarachter het aantal resultaten tussen haakjes. Zo zie je altijd hoeveel wijnen er op dat moment getoond worden.</p>
+        <p>De balk "Mijn Wijnen (12)" staat direct boven de wijnkaarten en blijft zichtbaar terwijl je scrolt. Het getal tussen haakjes toont hoeveel wijnen er op dit moment worden getoond — handig om te zien wat een filter oplevert.</p>
         <div class="h-subsection">Wijndetails bewerken</div>
         <p>Tik op een wijnkaart om het detailpaneel te openen. Hier kun je alle gegevens aanpassen, een beoordeling geven (1–5 sterren), notities toevoegen en de wijn delen of verwijderen. Sluit het paneel met de <strong>✕</strong>-knop rechtsboven.</p>
       </div>
@@ -1895,6 +1903,7 @@ function setFilter(f,el){
 function renderLib(){
   let list=[...wines];
   if(filter==='instock') list=list.filter(w=>(w.voorraad||0)>0);
+  else if(filter==='uitgeput') list=list.filter(w=>(w.voorraad||0)===0);
   else if(filter.startsWith('drink:')){
     const dk=filter.split(':')[1];
     list=list.filter(w=>{const ds=drinkStatus(w);return ds&&ds.key===dk;});
@@ -1939,6 +1948,8 @@ function renderLib(){
   else if(sort==='price_desc') list.sort((a,b)=>(parseFloat(b.prijs)||0)-(parseFloat(a.prijs)||0));
   else if(sort==='rating') list.sort((a,b)=>(b.beoordeling||0)-(a.beoordeling||0));
   document.getElementById('libSectionTitle').textContent='Mijn Wijnen'+(list.length?' ('+list.length+')':'');
+  const cb=document.querySelector('.ctrl-bar');
+  if(cb) document.documentElement.style.setProperty('--ctrl-bar-h',cb.offsetHeight+'px');
   const el=document.getElementById('wineList');
   if(!list.length){
     el.innerHTML=`<div class="empty"><div class="empty-icon">${wines.length===0?'🍾':'🔍'}</div><div class="empty-title">${wines.length===0?'Nog geen wijnen':'Geen resultaten'}</div><div class="empty-sub">${wines.length===0?'Scan een etiket om te beginnen':'Pas de filters aan'}</div></div>`;
@@ -2261,6 +2272,7 @@ function showSubview(filterKey,title){
   let list=[];
   if(filterKey==='all') list=[...wines];
   else if(filterKey==='instock') list=wines.filter(w=>(w.voorraad||0)>0);
+  else if(filterKey==='uitgeput') list=wines.filter(w=>(w.voorraad||0)===0);
   else if(filterKey.startsWith('type:')) list=wines.filter(w=>w.type===filterKey.split(':')[1]);
   else if(filterKey.startsWith('stars:')){const s=parseInt(filterKey.split(':')[1]);if(s===0)list=wines.filter(w=>!w.beoordeling||w.beoordeling===0);else list=wines.filter(w=>w.beoordeling===s);}
   else if(filterKey.startsWith('drink:')){const dk=filterKey.split(':')[1];if(dk==='none')list=wines.filter(w=>!drinkStatus(w));else list=wines.filter(w=>{const ds=drinkStatus(w);return ds&&ds.key===dk;});}
